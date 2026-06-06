@@ -1,6 +1,10 @@
 import StateExplorer from "@/components/StateExplorer";
 
-export default function StatesPage() {
+export default function StatesPage({
+  searchParams,
+}: {
+  searchParams: { sel?: string };
+}) {
   return (
     <>
       <div className="hero">
@@ -20,7 +24,7 @@ export default function StatesPage() {
       </div>
 
       <div className="view-wrap">
-        <StateExplorer />
+        <StateExplorer initialSelectedAbbr={searchParams.sel} />
       </div>
     </>
   );

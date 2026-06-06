@@ -65,8 +65,9 @@ export async function fetchListings(rawCity: string, maxPrice = 500000): Promise
       timeout: 12000,
     });
 
-    const raw = Array.isArray(res.data) ? res.data : [];
-    const listings: Listing[] = raw.slice(0, 3).map((p: any, i: number) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw: any[] = Array.isArray(res.data) ? res.data : [];
+    const listings: Listing[] = raw.slice(0, 3).map((p, i) => ({
       id: String(p.id ?? p.formattedAddress ?? i),
       address: p.formattedAddress || p.addressLine1 || `${city}${state ? ", " + state : ""}`,
       price: Number(p.price ?? p.lastSalePrice ?? 0),
@@ -84,7 +85,7 @@ export async function fetchListings(rawCity: string, maxPrice = 500000): Promise
 
     cache.set(key, { at: Date.now(), data });
     return data;
-  } catch (err) {
+  } catch {
     const data: ListingsResult = { listings: [], fallback: true };
     cache.set(key, { at: Date.now(), data });
     return data;

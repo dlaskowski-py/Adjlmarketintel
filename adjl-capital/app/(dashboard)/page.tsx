@@ -1,7 +1,11 @@
 import { TOP20 } from "@/lib/data/markets";
 import MarketExplorer from "@/components/MarketExplorer";
 
-export default function Top20Page() {
+export default function Top20Page({
+  searchParams,
+}: {
+  searchParams: { sel?: string };
+}) {
   return (
     <>
       <div className="hero">
@@ -47,7 +51,7 @@ export default function Top20Page() {
       </div>
 
       <div className="view-wrap">
-        <MarketExplorer markets={TOP20} withFilter grouped />
+        <MarketExplorer markets={TOP20} withFilter grouped initialSelectedId={searchParams.sel} />
       </div>
     </>
   );

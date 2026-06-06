@@ -17,6 +17,7 @@ interface AISynopsisProps {
   promptData: MarketPromptData | StatePromptData | AnalyzePromptData;
   promptType: PromptType;
   variant?: "syn" | "analyze";
+  onText?: (text: string) => void;
 }
 
 // Session-lifetime cache (persists across client navigation, not to the DB).
@@ -45,8 +46,11 @@ export default function AISynopsis({
   promptData,
   promptType,
   variant = "syn",
+  onText,
 }: AISynopsisProps) {
   const key = `${promptType}:${cacheKey}`;
+  const onTextRef = useRef(onText);
+  onTextRef.current = onText;
   const [text, setText] = useState<string>(() => synCache.get(key) ?? "");
   const [loading, setLoading] = useState<boolean>(() => !synCache.has(key));
   const [failed, setFailed] = useState(false);
@@ -60,6 +64,7 @@ export default function AISynopsis({
       setText(cached);
       setLoading(false);
       setFailed(false);
+      onTextRef.current?.(cached);
       return;
     }
 
@@ -83,6 +88,7 @@ export default function AISynopsis({
         synCache.set(key, out);
         setText(out);
         setLoading(false);
+        onTextRef.current?.(out);
       } catch {
         if (cancelled) return;
         setFailed(true);

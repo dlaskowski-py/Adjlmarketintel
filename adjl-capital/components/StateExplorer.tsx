@@ -20,8 +20,8 @@ function priceNum(p: string) {
   return parseInt(p.replace(/\D/g, ""), 10) || 0;
 }
 
-export default function StateExplorer() {
-  const [selectedAbbr, setSelectedAbbr] = useState<string | null>(null);
+export default function StateExplorer({ initialSelectedAbbr }: { initialSelectedAbbr?: string }) {
+  const [selectedAbbr, setSelectedAbbr] = useState<string | null>(initialSelectedAbbr ?? null);
   const [sort, setSort] = useState<SortMode>("alpha");
   const [query, setQuery] = useState("");
 

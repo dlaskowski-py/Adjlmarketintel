@@ -9,6 +9,7 @@ interface MarketExplorerProps {
   markets: Market[];
   withFilter?: boolean; // category filter bar (Top 20 only)
   grouped?: boolean; // split into College / Defense & Tech sections
+  initialSelectedId?: string; // pre-select a row (e.g. from the Compare table)
 }
 
 const FILTERS: { key: string; label: string }[] = [
@@ -23,8 +24,9 @@ export default function MarketExplorer({
   markets,
   withFilter = false,
   grouped = false,
+  initialSelectedId,
 }: MarketExplorerProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
   const [filterCat, setFilterCat] = useState("all");
   const [query, setQuery] = useState("");
 

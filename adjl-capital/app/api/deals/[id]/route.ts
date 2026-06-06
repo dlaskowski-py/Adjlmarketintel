@@ -9,7 +9,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: any;
+  let body: { status?: unknown; notes?: unknown };
   try {
     body = await req.json();
   } catch {
