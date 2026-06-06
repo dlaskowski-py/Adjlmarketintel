@@ -143,7 +143,7 @@ export default function AISynopsis({
         )}
         {failed && (
           <p className={textClass} style={{ opacity: 0.55, fontStyle: "italic" }}>
-            AI analysis unavailable — API connection required.
+            AI analysis loads when API key is configured.
           </p>
         )}
         {!loading &&

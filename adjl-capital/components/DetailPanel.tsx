@@ -91,7 +91,7 @@ function MarketDetail({ m }: { m: Market }) {
       <AISynopsis
         cacheKey={m.id}
         promptType="market"
-        promptData={{ city: m.city, driver: m.drv, median: m.median, rent: m.rent }}
+        promptData={{ city: m.city, driver: m.drv, median: m.median, rent: m.rent, growth: m.growth }}
       />
 
       <div className="d-sec">
@@ -107,7 +107,10 @@ function MarketDetail({ m }: { m: Market }) {
         <div className="d-risk">{m.risk}</div>
       </div>
 
-      <ListingCards city={m.city} />
+      {(() => {
+        const [cityName, stateAbbr] = m.city.split(",").map((s) => s.trim());
+        return <ListingCards city={cityName} state={stateAbbr || ""} />;
+      })()}
     </div>
   );
 }

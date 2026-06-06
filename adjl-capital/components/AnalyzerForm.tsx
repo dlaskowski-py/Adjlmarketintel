@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AnalysisResults, { type AnalyzerValues } from "@/components/AnalysisResults";
 import type { Strategy } from "@/lib/calc/analyzer";
 
 export interface AnalyzerPrefill {
+  address?: string;
   city?: string;
   price?: string;
   units?: string;
@@ -38,6 +39,7 @@ Return ONLY valid JSON, no other text:
 
 export default function AnalyzerForm({ prefill }: { prefill?: AnalyzerPrefill }) {
   const [url, setUrl] = useState("");
+  const [address, setAddress] = useState(prefill?.address ?? "");
   const [city, setCity] = useState(prefill?.city ?? "");
   const [price, setPrice] = useState(prefill?.price ?? "");
   const [units, setUnits] = useState(prefill?.units ?? "");
@@ -54,6 +56,20 @@ export default function AnalyzerForm({ prefill }: { prefill?: AnalyzerPrefill })
   const [submitted, setSubmitted] = useState<AnalyzerValues | null>(null);
   const [sourceLabel, setSourceLabel] = useState<string | undefined>();
   const [sourceUrl, setSourceUrl] = useState<string | undefined>();
+
+  // Auto-fetch a rent estimate once we know an address + beds, if rent is empty.
+  useEffect(() => {
+    if (!address || !beds || rent) return;
+    fetch(`/api/rent-estimate?address=${encodeURIComponent(address)}&bedrooms=${beds}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.estimate?.rent) {
+          setRent((cur) => (cur ? cur : String(Math.round(data.estimate.rent))));
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address]);
 
   function collect(): AnalyzerValues | null {
     const p = parseFloat(price) || 0;
@@ -78,7 +94,7 @@ export default function AnalyzerForm({ prefill }: { prefill?: AnalyzerPrefill })
   function runManual() {
     const values = collect();
     if (!values) return;
-    setSourceLabel(undefined);
+    setSourceLabel(address || undefined);
     setSourceUrl(undefined);
     setSubmitted(values);
   }
@@ -117,6 +133,7 @@ export default function AnalyzerForm({ prefill }: { prefill?: AnalyzerPrefill })
       };
 
       // Reflect extracted values back into the form.
+      if (prop.address) setAddress(String(prop.address));
       setCity(String(next.city));
       setPrice(String(next.price || ""));
       setUnits(String(next.units || ""));

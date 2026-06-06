@@ -1,93 +1,124 @@
-import axios from "axios";
+// RentCast API — formerly Realty Mole
+// Docs: https://developers.rentcast.io/reference/sale-listings
+// Auth header: X-Api-Key
+// Base URL: https://api.rentcast.io/v1
 
-export interface Listing {
+export interface RentCastListing {
   id: string;
-  address: string;
-  price: number;
+  formattedAddress: string;
+  addressLine1: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  propertyType: string;
   bedrooms: number;
   bathrooms: number;
   squareFootage: number;
   yearBuilt: number;
+  price: number;
+  status: string;
+  listedDate: string;
   daysOnMarket: number;
-  photos: string[];
-  zillowUrl?: string;
+  mlsNumber?: string;
+  listingAgent?: {
+    name: string;
+    phone: string;
+    email: string;
+  };
 }
 
-export interface ListingsResult {
-  listings: Listing[];
-  fallback?: boolean;
+export interface RentEstimate {
+  rent: number;
+  rentRangeLow: number;
+  rentRangeHigh: number;
+  comparables: Array<{
+    formattedAddress: string;
+    rent: number;
+    bedrooms: number;
+    bathrooms: number;
+    squareFootage: number;
+  }>;
 }
 
-const REALTY_MOLE_HOST = "realty-mole-property-api.p.rapidapi.com";
-const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const BASE = "https://api.rentcast.io/v1";
 
-// In-memory cache, keyed by city query.
-const cache = new Map<string, { at: number; data: ListingsResult }>();
-
-// Splits "College Station, TX" → { city: "College Station", state: "TX" }
-function splitCity(raw: string): { city: string; state?: string } {
-  const parts = raw.split(",").map((p) => p.trim());
-  if (parts.length >= 2) {
-    return { city: parts[0], state: parts[parts.length - 1] };
-  }
-  return { city: raw.trim() };
+function authHeaders(): Record<string, string> | null {
+  const key = process.env.RENTCAST_API_KEY;
+  if (!key) return null;
+  return { "X-Api-Key": key, "Content-Type": "application/json" };
 }
 
-export async function fetchListings(rawCity: string, maxPrice = 500000): Promise<ListingsResult> {
-  const key = `${rawCity.toLowerCase()}|${maxPrice}`;
-  const cached = cache.get(key);
-  if (cached && Date.now() - cached.at < TTL_MS) {
-    return cached.data;
+// In-memory cache: city slug → { listings, fetchedAt }
+const listingCache = new Map<string, { listings: RentCastListing[]; fetchedAt: number }>();
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+export async function getSaleListings(
+  city: string,
+  state: string,
+  maxPrice = 500000,
+  limit = 3
+): Promise<RentCastListing[]> {
+  const cacheKey = `${city}-${state}`.toLowerCase().replace(/\s+/g, "-");
+  const cached = listingCache.get(cacheKey);
+
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) {
+    return cached.listings;
   }
 
-  const apiKey = process.env.REALTY_MOLE_API_KEY;
-  if (!apiKey) {
-    const data: ListingsResult = { listings: [], fallback: true };
-    cache.set(key, { at: Date.now(), data });
-    return data;
+  const headers = authHeaders();
+  if (!headers) {
+    // No API key configured → degrade gracefully to the fallback links.
+    return [];
   }
-
-  const { city, state } = splitCity(rawCity);
 
   try {
-    const res = await axios.get(`https://${REALTY_MOLE_HOST}/properties`, {
-      params: {
-        city,
-        state,
-        propertyType: "Multi Family",
-        limit: 3,
-        maxPrice,
-      },
-      headers: {
-        "X-RapidAPI-Key": apiKey,
-        "X-RapidAPI-Host": REALTY_MOLE_HOST,
-      },
-      timeout: 12000,
+    const params = new URLSearchParams({
+      city,
+      state,
+      propertyType: "Multi-Family",
+      status: "Active",
+      price: `0-${maxPrice}`,
+      limit: String(limit),
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw: any[] = Array.isArray(res.data) ? res.data : [];
-    const listings: Listing[] = raw.slice(0, 3).map((p, i) => ({
-      id: String(p.id ?? p.formattedAddress ?? i),
-      address: p.formattedAddress || p.addressLine1 || `${city}${state ? ", " + state : ""}`,
-      price: Number(p.price ?? p.lastSalePrice ?? 0),
-      bedrooms: Number(p.bedrooms ?? 0),
-      bathrooms: Number(p.bathrooms ?? 0),
-      squareFootage: Number(p.squareFootage ?? 0),
-      yearBuilt: Number(p.yearBuilt ?? 0),
-      daysOnMarket: Number(p.daysOnMarket ?? 0),
-      photos: Array.isArray(p.photos) ? p.photos : [],
-    }));
+    const res = await fetch(`${BASE}/listings/sale?${params}`, { headers });
 
-    const valid = listings.filter((l) => l.price > 0);
-    const data: ListingsResult =
-      valid.length > 0 ? { listings: valid } : { listings: [], fallback: true };
+    if (!res.ok) {
+      console.error(`RentCast error: ${res.status}`);
+      return [];
+    }
 
-    cache.set(key, { at: Date.now(), data });
-    return data;
+    const data: RentCastListing[] = await res.json();
+    const listings = Array.isArray(data) ? data : [];
+    listingCache.set(cacheKey, { listings, fetchedAt: Date.now() });
+    return listings;
+  } catch (err) {
+    console.error("RentCast fetch error:", err);
+    return [];
+  }
+}
+
+export async function getRentEstimate(
+  address: string,
+  propertyType = "Multi-Family",
+  bedrooms?: number,
+  bathrooms?: number,
+  squareFootage?: number
+): Promise<RentEstimate | null> {
+  const headers = authHeaders();
+  if (!headers) return null;
+
+  try {
+    const params = new URLSearchParams({ address, propertyType });
+    if (bedrooms) params.set("bedrooms", String(bedrooms));
+    if (bathrooms) params.set("bathrooms", String(bathrooms));
+    if (squareFootage) params.set("squareFootage", String(squareFootage));
+
+    const res = await fetch(`${BASE}/avm/rent/long-term?${params}`, { headers });
+
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
-    const data: ListingsResult = { listings: [], fallback: true };
-    cache.set(key, { at: Date.now(), data });
-    return data;
+    return null;
   }
 }

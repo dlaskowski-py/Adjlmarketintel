@@ -6,6 +6,7 @@ export default function AnalyzePage({
   searchParams: { [key: string]: string | undefined };
 }) {
   const prefill = {
+    address: searchParams.address,
     city: searchParams.city,
     price: searchParams.price,
     units: searchParams.units,

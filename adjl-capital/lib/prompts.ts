@@ -1,11 +1,12 @@
-// AI prompt builders — wording copied EXACTLY from the spec (§8).
-// DO NOT change the prompt wording.
+// AI prompt builders — wording copied VERBATIM from the HTML prototype
+// (per Phase 2 spec §3 and §5). DO NOT change the prompt wording.
 
 export interface MarketPromptData {
   city: string;
   driver: string;
   median: string;
   rent: string;
+  growth: string;
 }
 
 export interface StatePromptData {
@@ -16,64 +17,66 @@ export interface StatePromptData {
 
 export interface AnalyzePromptData {
   city: string;
-  price: string;
-  units: number | string;
-  beds: number | string;
+  price: number;
+  units: number;
+  beds: number;
   strategy: "room" | "unit" | string;
-  rent: number | string;
-  yearBuilt: number | string;
-  rate: number | string;
-  noi: string;
-  dscr: string;
-  capRate: string;
-  onePct: string;
-  irr: string;
+  rent: number;
+  yearBuilt?: number;
+  rate: number;
+  noi: number;
+  dscr: number;
+  capRate: number;
+  onePct: number;
+  irr: number; // ADJL-owned IRR
+  soloIrr: number; // single-investor IRR
 }
 
 export function buildMarketPrompt(d: MarketPromptData): string {
-  return `You are a real estate investment analyst for ADJL Capital, a private equity firm.
-Write a sharp 3-paragraph growth synopsis for ${d.city} (${d.driver}).
+  return `You are a real estate investment analyst for ADJL Capital, a private equity firm. Write a sharp 3-paragraph growth synopsis for ${d.city} (${d.driver}).
 
-Paragraph 1 — Why It's Booming: Specific economic catalysts, job growth, population trends making this market boom in 2026. Specific companies and numbers.
+Paragraph 1 — Why It's Booming: The specific economic catalysts, job growth, population trends making this market boom in 2026. Specific companies, numbers, and recent developments.
 
-Paragraph 2 — Home Price Analysis: Current median price of ${d.median}. How it compares to the national average of $355,000. Rent of ${d.rent}. What ADJL Capital can realistically acquire at this price point.
+Paragraph 2 — Home Price Analysis: Current median price of ${d.median}. How it compares to national average ($355,000). Recent price trend (${d.growth}). Average rent of ${d.rent}. What ADJL Capital can realistically acquire at this price point for a multifamily investment.
 
-Paragraph 3 — 3–5 Year Outlook: Forward-looking assessment of rent growth, appreciation potential, and fit for ADJL Capital's multifamily + per-room leasing or defense/military workforce housing strategy.
+Paragraph 3 — 3–5 Year Outlook: Forward-looking assessment of rent growth, appreciation potential, and why this market fits ADJL Capital's investment strategy of multifamily acquisition with per-room student leasing or military/defense workforce housing.
 
-Around 200 words. Plain text only, no bullets, no markdown.`;
+Keep it sharp, data-informed, written for sophisticated investors. Around 200 words. Plain text only, no bullets.`;
 }
 
 export function buildStatePrompt(d: StatePromptData): string {
-  return `You are a real estate investment analyst for ADJL Capital, a private equity firm.
-Write a sharp 3-paragraph investment analysis for ${d.name} as a state-level real estate market.
+  return `You are a real estate investment analyst for ADJL Capital, a private equity firm. Write a sharp 3-paragraph investment analysis for ${d.name} as a state-level real estate market.
 
-Paragraph 1 — Why It's Worth Watching: Key economic drivers, job growth, population trends, and what makes this state interesting or challenging for investors in 2026.
+Paragraph 1 — Why It's Worth Watching: Key economic drivers, job growth, population trends, and what's making this state interesting or challenging for investors in 2026. Specific data points.
 
-Paragraph 2 — Home Price & Rental Analysis: Median home price of ${d.price} vs. national average of $355,000. Average rent of ${d.rent}/mo. Best cities within the state for multifamily investment.
+Paragraph 2 — Home Price & Rental Analysis: Current median home price of ${d.price}, how it compares to the national average of $355,000, recent price trends, and average rent of ${d.rent}/mo. What cap rates look like. Which cities within the state offer the best opportunities.
 
-Paragraph 3 — ADJL Investment Outlook: Whether this state fits ADJL Capital's strategy (multifamily near colleges or defense/military workforce housing), what to target, and main risks.
+Paragraph 3 — ADJL Investment Outlook: Whether this state fits ADJL Capital's strategy (multifamily, per-room student leasing near colleges, or defense/military workforce housing), what type of properties to target, and the main risks to watch.
 
-Around 200 words. Plain text, no bullets, no markdown.`;
+Keep it sharp, specific, and data-informed. Around 200 words. Plain text, no bullets, no markdown.`;
 }
 
 export function buildAnalyzePrompt(d: AnalyzePromptData): string {
   const rentLine =
-    d.strategy === "room" ? `$${d.rent}/bedroom (per-room)` : `$${d.rent}/unit`;
+    d.strategy === "room"
+      ? `$${d.rent}/bedroom (per-room strategy)`
+      : `$${d.rent}/unit (whole unit)`;
   return `You are a real estate investment analyst for ADJL Capital. Analyze this property:
 
 Location: ${d.city}
-Price: ${d.price}
+Price: $${d.price.toLocaleString()}
 Units: ${d.units} units, ${d.beds} beds each
 Rent: ${rentLine}
-Year Built: ${d.yearBuilt}
+Year Built: ${d.yearBuilt || "Unknown"}
 Mortgage Rate: ${d.rate}%
 
-Key metrics (ADJL-owned scenario):
-- NOI: ${d.noi}/yr
-- DSCR: ${d.dscr}x
-- Cap Rate: ${d.capRate}%
-- 1% Rule: ${d.onePct}%
-- IRR: ${d.irr}%
+Key metrics:
+- NOI: $${Math.round(d.noi).toLocaleString()}/yr
+- DSCR: ${d.dscr.toFixed(2)}x
+- Cap Rate: ${d.capRate.toFixed(1)}%
+- 1% Rule: ${d.onePct.toFixed(2)}%
+- IRR (ADJL owned): ${d.irr.toFixed(1)}%
+- IRR (single investor): ${d.soloIrr.toFixed(1)}%
 
-Write 2–3 sharp paragraphs: (1) whether this is a good investment and why, (2) the biggest risk, (3) one specific recommendation to improve the deal. Be direct — if it's a bad deal say so clearly. Plain text, no bullets. Max 180 words.`;
+Write 2–3 sharp paragraphs: (1) whether this is a good investment and why, (2) the biggest risk, (3) one specific recommendation to improve the deal. Be direct and honest — if it's a bad deal, say so clearly. Plain text, no bullets. Max 180 words.`;
 }

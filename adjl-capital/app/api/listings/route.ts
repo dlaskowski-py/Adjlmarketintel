@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { fetchListings } from "@/lib/listings";
+import { getSaleListings } from "@/lib/listings";
 
-// GET /api/listings?city=College+Station+TX&maxPrice=500000
-// Returns { listings: Listing[], fallback?: boolean }
+// GET /api/listings?city=College+Station&state=TX&maxPrice=500000
+// Returns { listings: RentCastListing[], fallback: boolean }
 // - Requires an auth session
-// - Results cached in memory for 24h per city key
+// - Results cached in memory for 24h per city-state key (see lib/listings.ts)
 export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user) {
@@ -13,13 +13,18 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const city = searchParams.get("city") || "";
-  const maxPrice = parseInt(searchParams.get("maxPrice") || "500000", 10) || 500000;
+  const city = searchParams.get("city");
+  const state = searchParams.get("state");
+  const maxPrice = Number(searchParams.get("maxPrice") || 500000);
 
-  if (!city.trim()) {
-    return NextResponse.json({ listings: [], fallback: true });
+  if (!city || !state) {
+    return NextResponse.json({ error: "city and state required" }, { status: 400 });
   }
 
-  const result = await fetchListings(city, maxPrice);
-  return NextResponse.json(result);
+  const listings = await getSaleListings(city, state, maxPrice);
+
+  return NextResponse.json({
+    listings,
+    fallback: listings.length === 0,
+  });
 }

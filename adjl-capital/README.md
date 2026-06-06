@@ -12,7 +12,7 @@ server-side AI backend.
 - **NextAuth.js v5** (credentials provider)
 - **Supabase** (PostgreSQL) via **Prisma**
 - **@anthropic-ai/sdk** (server-side only)
-- **Realty Mole** property API (listings)
+- **RentCast** property API (sale listings + rent estimates)
 - Fonts: Cormorant Garamond + Barlow + Barlow Condensed (`next/font`)
 
 ## Features
@@ -26,8 +26,9 @@ server-side AI backend.
   5-investor, single investor) with a STRONG BUY / CONDITIONAL / PASS verdict
 - **Deal Pipeline** — save analyses to Postgres, update status, edit notes,
   delete, expand for full metrics, export CSV
-- **Live Listings** in the market detail panel (Realty Mole, 24h cache, with
-  Zillow/Redfin fallback)
+- **Live Listings** in the market detail panel (RentCast, 24h cache, with
+  Zillow/Redfin fallback) + rent-estimate auto-fill in the analyzer
+- Pipeline is **shared across all three partners**
 
 ## Getting Started
 
@@ -48,7 +49,7 @@ NEXTAUTH_SECRET=                       # run: openssl rand -base64 32
 NEXTAUTH_URL=http://localhost:3000     # prod URL on Vercel
 AUTH_SECRET=                           # same value as NEXTAUTH_SECRET
 DATABASE_URL=postgresql://...          # Supabase project settings → Database
-REALTY_MOLE_API_KEY=                   # realtymole.com after signup
+RENTCAST_API_KEY=                      # rentcast.io (free Developer plan = 50 calls/mo)
 ```
 
 > NextAuth v5 reads `AUTH_SECRET`/`AUTH_URL`; keep them in sync with the

@@ -209,18 +209,19 @@ export default function AnalysisResults({ values, sourceLabel, sourceUrl }: Anal
         onText={setAiText}
         promptData={{
           city,
-          price: fmt(price),
+          price,
           units,
           beds,
           strategy,
           rent,
           yearBuilt: year,
           rate,
-          noi: fmt(adjl.noi),
-          dscr: adjl.dscr.toFixed(2),
-          capRate: fmtP(adjl.capRate),
-          onePct: fmtP(adjl.onePctRule),
-          irr: fmtP(adjl.irr),
+          noi: adjl.noi,
+          dscr: adjl.dscr,
+          capRate: adjl.capRate,
+          onePct: adjl.onePctRule,
+          irr: adjl.irr,
+          soloIrr: solo.irr,
         }}
       />
 

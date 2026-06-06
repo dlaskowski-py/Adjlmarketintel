@@ -16,31 +16,30 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const existing = await prisma.deal.findUnique({ where: { id: params.id } });
-  if (!existing || existing.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
+  // Shared pipeline (Phase 2 §6b) — any authenticated partner may update.
   const data: { status?: string; notes?: string } = {};
   if (typeof body.status === "string") data.status = body.status;
   if (typeof body.notes === "string") data.notes = body.notes;
 
-  const deal = await prisma.deal.update({ where: { id: params.id }, data });
-  return NextResponse.json({ deal });
+  try {
+    const deal = await prisma.deal.update({ where: { id: params.id }, data });
+    return NextResponse.json({ deal });
+  } catch {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 }
 
-// DELETE /api/deals/:id — delete a deal (must belong to the user).
+// DELETE /api/deals/:id — delete a deal from the shared pipeline.
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const existing = await prisma.deal.findUnique({ where: { id: params.id } });
-  if (!existing || existing.userId !== session.user.id) {
+  try {
+    await prisma.deal.delete({ where: { id: params.id } });
+    return NextResponse.json({ ok: true });
+  } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-
-  await prisma.deal.delete({ where: { id: params.id } });
-  return NextResponse.json({ ok: true });
 }

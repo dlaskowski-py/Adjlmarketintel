@@ -3,7 +3,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
 import type { Prisma } from "@prisma/client";
 
-// GET /api/deals — all deals for the authenticated user, newest first.
+// GET /api/deals — the shared pipeline: all deals across all three partners,
+// newest first (Phase 2 §6a — no userId filter).
 export async function GET() {
   const session = await auth();
   if (!session?.user) {
@@ -11,7 +12,6 @@ export async function GET() {
   }
 
   const deals = await prisma.deal.findMany({
-    where: { userId: session.user.id },
     orderBy: { savedAt: "desc" },
   });
   return NextResponse.json({ deals });
