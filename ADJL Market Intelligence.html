@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADJL Capital — Market Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0F1A2E;--navy-mid:#1B2B4B;--gold:#C9A84C;--gold-l:#E2C87A;
+  --cream:#F8F5EF;--white:#fff;--muted:rgba(248,245,239,.5);
+  --green:#1A6B3C;--blue:#1A3A8A;--purple:#5A1A8A;--red:#8B1A1A;
+  --border:rgba(201,168,76,.15);--card:rgba(27,43,75,.6);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Barlow',sans-serif;background:var(--navy);color:var(--cream);overflow-x:hidden;}
+.bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 80% 60% at 90% 20%,rgba(201,168,76,.05) 0%,transparent 60%),
+  radial-gradient(ellipse 60% 80% at 10% 80%,rgba(201,168,76,.03) 0%,transparent 60%),
+  linear-gradient(160deg,#060D1A 0%,#0F1A2E 50%,#1B2B4B 100%);}
+.bgrid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(201,168,76,.025) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(201,168,76,.025) 1px,transparent 1px);
+  background-size:64px 64px;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;
+  justify-content:space-between;padding:1rem 2.5rem;
+  background:rgba(9,16,28,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);}
+.nav-logo{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:700;
+  letter-spacing:.15em;color:var(--cream);white-space:nowrap;}
+.nav-logo span{color:var(--gold);}
+.nav-tabs{display:flex;gap:.4rem;flex-wrap:wrap;}
+.tb{padding:.32rem .75rem;font-size:.65rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;border:1px solid transparent;cursor:pointer;
+  transition:all .2s;background:none;color:var(--muted);font-family:'Barlow',sans-serif;}
+.tb.active,.tb:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08);}
+
+main{position:relative;z-index:1;padding-top:72px;}
+
+/* HERO */
+.hero{padding:2.5rem 2.5rem 1.8rem;max-width:1400px;margin:0 auto;}
+.hero-row{display:flex;align-items:flex-end;justify-content:space-between;
+  margin-bottom:1.8rem;flex-wrap:wrap;gap:1rem;}
+.hero-hl{font-family:'Cormorant Garamond',serif;font-size:clamp(1.8rem,3vw,3rem);
+  font-weight:300;line-height:1.1;color:var(--cream);}
+.hero-hl em{font-style:italic;color:var(--gold-l);}
+.hero-sub{font-size:.82rem;line-height:1.7;color:var(--muted);max-width:360px;}
+.sbar{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;
+  background:var(--border);border:1px solid var(--border);}
+.sc{background:rgba(27,43,75,.5);padding:.9rem;text-align:center;}
+.sv{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:600;
+  color:var(--gold-l);line-height:1;display:block;margin-bottom:.2rem;}
+.sl{font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(201,168,76,.4);}
+
+/* TABS CONTENT */
+.view-wrap{max-width:1400px;margin:0 auto;padding:0 2.5rem 4rem;}
+
+/* FILTER */
+.fbar{display:flex;align-items:center;gap:.6rem;margin-bottom:1.5rem;flex-wrap:wrap;}
+.fl{font-size:.62rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
+  color:rgba(201,168,76,.4);}
+.fb{padding:.28rem .7rem;font-size:.64rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;border:1px solid rgba(201,168,76,.2);color:var(--muted);
+  background:none;cursor:pointer;transition:all .2s;font-family:'Barlow',sans-serif;}
+.fb.active,.fb:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.07);}
+.sb{margin-left:auto;padding:.34rem .85rem;background:rgba(255,255,255,.04);
+  border:1px solid rgba(201,168,76,.18);color:var(--cream);font-family:'Barlow',sans-serif;
+  font-size:.78rem;outline:none;min-width:180px;transition:border-color .2s;}
+.sb::placeholder{color:rgba(248,245,239,.2);}
+.sb:focus{border-color:var(--gold);}
+
+/* SPLIT LAYOUT */
+.split{display:grid;grid-template-columns:1fr 400px;gap:0;min-height:75vh;}
+.list-col{padding-right:1.6rem;overflow-y:auto;max-height:78vh;
+  scrollbar-width:thin;scrollbar-color:rgba(201,168,76,.15) transparent;}
+.list-col::-webkit-scrollbar{width:3px;}
+.list-col::-webkit-scrollbar-thumb{background:rgba(201,168,76,.15);}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;gap:.8rem;margin:1.4rem 0 .8rem;
+  position:sticky;top:0;background:linear-gradient(var(--navy),var(--navy) 90%,transparent);
+  padding:.4rem 0;z-index:2;}
+.sh-title{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:400;
+  color:var(--cream);white-space:nowrap;}
+.sh-title em{font-style:italic;color:var(--gold);}
+.sh-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,.3),transparent);}
+.sh-ct{font-size:.58rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
+  color:rgba(201,168,76,.3);white-space:nowrap;}
+
+/* MARKET ROW */
+.mrow{display:flex;align-items:stretch;border:1px solid var(--border);
+  background:var(--card);margin-bottom:.55rem;cursor:pointer;
+  transition:border-color .2s,transform .2s,box-shadow .2s;
+  backdrop-filter:blur(8px);position:relative;overflow:hidden;}
+.mrow::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--gold);transform:scaleY(0);transition:transform .2s;transform-origin:bottom;}
+.mrow:hover::before,.mrow.sel::before{transform:scaleY(1);}
+.mrow:hover{transform:translateX(2px);border-color:rgba(201,168,76,.32);
+  box-shadow:0 3px 16px rgba(0,0,0,.28);}
+.mrow.sel{border-color:rgba(201,168,76,.45);background:rgba(27,43,75,.88);}
+.mr-rank{width:46px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:.7rem 0;background:rgba(201,168,76,.06);
+  border-right:1px solid rgba(201,168,76,.1);flex-shrink:0;}
+.rn{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;
+  color:var(--gold);line-height:1;}
+.mr-main{padding:.65rem .9rem;flex:1;min-width:0;}
+.rc{font-family:'Cormorant Garamond',serif;font-size:.98rem;font-weight:600;
+  color:var(--cream);line-height:1.2;}
+.rd{font-size:.67rem;color:rgba(201,168,76,.58);margin-top:.12rem;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rm{display:flex;gap:.5rem;margin-top:.35rem;flex-wrap:wrap;}
+.ri{font-size:.65rem;color:var(--muted);}
+.ri strong{color:var(--cream);font-weight:600;}
+.mr-right{display:flex;flex-direction:column;align-items:flex-end;
+  justify-content:center;padding:.65rem .9rem;gap:.25rem;flex-shrink:0;}
+.rs{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;color:var(--gold);}
+.rt{font-size:.56rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:.12rem .4rem;border:1px solid;}
+.tc{color:#4CAF7D;border-color:rgba(76,175,77,.3);background:rgba(26,107,60,.12);}
+.tm{color:#6B9FFF;border-color:rgba(107,159,255,.3);background:rgba(26,58,138,.12);}
+.tt{color:#B97FFF;border-color:rgba(185,127,255,.3);background:rgba(90,26,138,.12);}
+.td{color:#FF8080;border-color:rgba(255,128,128,.3);background:rgba(139,26,26,.12);}
+.tl{color:var(--gold-l);border-color:rgba(226,200,122,.3);background:rgba(201,168,76,.1);}
+.ts{color:#AAD4FF;border-color:rgba(170,212,255,.3);background:rgba(27,70,110,.15);}
+
+/* STATE ROW (compact) */
+.srow{display:flex;align-items:center;border:1px solid rgba(201,168,76,.08);
+  background:rgba(15,26,46,.5);margin-bottom:.4rem;cursor:pointer;
+  transition:border-color .2s,background .2s;padding:.6rem .9rem;gap:.8rem;}
+.srow:hover,.srow.sel{border-color:rgba(201,168,76,.3);background:rgba(27,43,75,.7);}
+.srow.sel{border-left:3px solid var(--gold);}
+.s-abbr{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;
+  color:var(--gold);width:36px;flex-shrink:0;text-align:center;}
+.s-name{font-size:.85rem;font-weight:600;color:var(--cream);flex:1;}
+.s-price{font-family:'Barlow Condensed',sans-serif;font-size:.88rem;
+  font-weight:600;color:var(--cream);white-space:nowrap;}
+.s-rent{font-size:.72rem;color:var(--muted);white-space:nowrap;}
+.s-inv{font-size:.6rem;font-weight:700;letter-spacing:.08em;padding:.1rem .4rem;
+  text-transform:uppercase;border:1px solid;white-space:nowrap;}
+.inv-hot{color:#4CAF7D;border-color:rgba(76,175,77,.3);background:rgba(26,107,60,.1);}
+.inv-good{color:var(--gold-l);border-color:rgba(226,200,122,.3);background:rgba(201,168,76,.08);}
+.inv-mod{color:rgba(248,245,239,.5);border-color:rgba(201,168,76,.1);background:rgba(27,43,75,.3);}
+.inv-caution{color:#FF8080;border-color:rgba(255,128,128,.25);background:rgba(139,26,26,.1);}
+
+/* DETAIL PANEL */
+.detail{position:sticky;top:80px;height:calc(100vh - 100px);overflow-y:auto;
+  border-left:1px solid var(--border);padding-left:1.6rem;
+  scrollbar-width:thin;scrollbar-color:rgba(201,168,76,.15) transparent;}
+.detail::-webkit-scrollbar{width:3px;}
+.detail::-webkit-scrollbar-thumb{background:rgba(201,168,76,.15);}
+.d-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;text-align:center;gap:.8rem;opacity:.45;}
+.d-empty h3{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:300;color:var(--cream);}
+.d-empty p{font-size:.78rem;color:var(--muted);max-width:220px;line-height:1.6;}
+.d-content{display:none;}
+.d-content.vis{display:block;animation:fu .3s ease;}
+@keyframes fu{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.d-hdr{border-bottom:1px solid var(--border);padding-bottom:.9rem;margin-bottom:1rem;}
+.d-rrow{display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;}
+.d-rank{font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:600;
+  color:var(--gold);opacity:.55;}
+.d-city{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:600;
+  color:var(--cream);line-height:1.1;margin-bottom:.25rem;}
+.d-drv{font-size:.74rem;color:var(--gold-l);opacity:.75;margin-bottom:.7rem;}
+.d-srow{display:flex;align-items:center;gap:.9rem;}
+.d-sbig{font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:700;color:var(--gold);line-height:1;}
+.d-slbl{font-size:.58rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:rgba(201,168,76,.4);}
+.d-sbar{flex:1;height:3px;background:rgba(201,168,76,.1);border-radius:2px;overflow:hidden;}
+.d-sfill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-l));border-radius:2px;transition:width .55s ease;}
+.d-metrics{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1rem;}
+.d-mb{background:rgba(27,43,75,.5);border:1px solid var(--border);padding:.7rem .8rem;}
+.d-mv{font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:600;
+  color:var(--cream);display:block;margin-bottom:.18rem;}
+.d-ml{font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(201,168,76,.38);}
+.d-badge{display:inline-block;margin-top:.25rem;padding:1px 4px;font-size:.56rem;font-weight:700;}
+.bu{background:rgba(26,107,60,.2);color:#4CAF7D;}
+.bw{background:rgba(201,168,76,.15);color:var(--gold);}
+.bd{background:rgba(139,26,26,.15);color:#FF8080;}
+.syn-hdr{display:flex;align-items:center;gap:.5rem;margin-bottom:.65rem;}
+.syn-lbl{font-size:.62rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);}
+.ai-pill{display:flex;align-items:center;gap:.25rem;padding:.18rem .45rem;
+  background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.18);
+  font-size:.55rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(201,168,76,.55);}
+.ai-dot{width:4px;height:4px;border-radius:50%;background:var(--gold);
+  animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.35;}50%{opacity:1;}}
+.syn-box{background:rgba(27,43,75,.4);border:1px solid var(--border);
+  border-left:3px solid var(--gold);padding:.9rem 1rem;margin-bottom:.9rem;min-height:60px;}
+.syn-text{font-size:.82rem;line-height:1.75;color:rgba(248,245,239,.8);}
+.ldots span{display:inline-block;width:4px;height:4px;border-radius:50%;
+  background:var(--gold);opacity:.35;animation:dp 1.2s ease-in-out infinite;}
+.ldots span:nth-child(2){animation-delay:.2s;}
+.ldots span:nth-child(3){animation-delay:.4s;}
+@keyframes dp{0%,80%,100%{opacity:.2;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+.d-sec{margin-bottom:.85rem;}
+.d-st{font-size:.6rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem;}
+.d-st::after{content:'';flex:1;height:1px;background:rgba(201,168,76,.12);}
+.d-why{font-size:.8rem;line-height:1.7;color:rgba(248,245,239,.62);}
+.d-strat{background:rgba(201,168,76,.05);border-left:2px solid var(--gold);
+  padding:.65rem .85rem;font-size:.77rem;line-height:1.65;color:rgba(248,245,239,.58);}
+.d-risk{background:rgba(139,26,26,.07);border-left:2px solid rgba(139,26,26,.32);
+  padding:.6rem .85rem;font-size:.74rem;line-height:1.6;color:rgba(248,245,239,.48);}
+.act-pill{display:inline-block;padding:.2rem .55rem;
+  background:rgba(26,107,60,.14);border:1px solid rgba(26,107,60,.28);
+  font-size:.57rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:#4CAF7D;margin-bottom:.7rem;}
+
+/* TABLE */
+.ctbl{width:100%;border-collapse:collapse;font-size:.78rem;}
+.ctbl th{background:rgba(15,26,46,.8);padding:.7rem .85rem;font-size:.6rem;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--gold);text-align:left;
+  border-bottom:2px solid rgba(201,168,76,.28);}
+.ctbl td{padding:.65rem .85rem;border-bottom:1px solid rgba(201,168,76,.06);
+  color:rgba(248,245,239,.7);vertical-align:middle;}
+.ctbl tr{cursor:pointer;transition:background .15s;}
+.ctbl tr:hover td{background:rgba(201,168,76,.04);}
+.ctbl .cc{font-weight:600;color:var(--cream);}
+.ctbl .sc2{color:var(--gold);font-weight:700;}
+.ctbl .pc{font-family:'Barlow Condensed',sans-serif;font-size:.85rem;}
+
+.hidden{display:none!important;}
+@media(max-width:900px){
+  .split{grid-template-columns:1fr;}
+  .detail{position:static;height:auto;border-left:none;border-top:1px solid var(--border);
+    padding-left:0;padding-top:1.2rem;margin-top:1.2rem;}
+  .list-col{max-height:none;padding-right:0;}
+  .sbar{grid-template-columns:repeat(3,1fr);}
+  nav{padding:.9rem 1.5rem;}
+  .hero,.view-wrap{padding-left:1.5rem;padding-right:1.5rem;}
+}
+
+/* ── ANALYZER ── */
+.az-wrap{max-width:960px;margin:0 auto;padding:2rem 0 4rem;}
+.az-hero{text-align:center;margin-bottom:2.5rem;}
+.az-hl{font-family:'Cormorant Garamond',serif;font-size:2.4rem;font-weight:300;
+  color:var(--cream);line-height:1.1;margin-bottom:.6rem;}
+.az-hl em{font-style:italic;color:var(--gold-l);}
+.az-sub{font-size:.88rem;color:var(--muted);line-height:1.6;}
+.az-input-row{display:flex;gap:.8rem;margin-bottom:1rem;}
+.az-url{flex:1;padding:.75rem 1.1rem;background:rgba(255,255,255,.04);
+  border:1px solid rgba(201,168,76,.25);color:var(--cream);
+  font-family:'Barlow',sans-serif;font-size:.9rem;outline:none;
+  transition:border-color .2s;}
+.az-url::placeholder{color:rgba(248,245,239,.25);}
+.az-url:focus{border-color:var(--gold);}
+.az-btn{padding:.75rem 1.8rem;background:var(--gold);color:var(--navy);
+  font-family:'Barlow',sans-serif;font-size:.82rem;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;
+  transition:opacity .2s;white-space:nowrap;}
+.az-btn:hover{opacity:.85;}
+.az-btn:disabled{opacity:.4;cursor:not-allowed;}
+.az-manual{background:rgba(27,43,75,.4);border:1px solid var(--border);padding:1.4rem;margin-bottom:1.5rem;}
+.az-manual-title{font-size:.65rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:1rem;}
+.az-fields{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;}
+.az-field label{display:block;font-size:.6rem;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:rgba(201,168,76,.5);margin-bottom:.35rem;}
+.az-field input,select.az-sel{width:100%;padding:.6rem .8rem;background:rgba(255,255,255,.04);
+  border:1px solid rgba(201,168,76,.18);color:var(--cream);
+  font-family:'Barlow',sans-serif;font-size:.88rem;outline:none;transition:border-color .2s;}
+.az-field input:focus,select.az-sel:focus{border-color:var(--gold);}
+select.az-sel option{background:var(--navy);color:var(--cream);}
+.az-or{text-align:center;font-size:.7rem;color:rgba(201,168,76,.35);
+  letter-spacing:.14em;text-transform:uppercase;margin:.8rem 0;}
+.az-results{margin-top:1.5rem;}
+.az-loading{text-align:center;padding:2rem;display:none;}
+.az-verdict-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  background:var(--border);border:1px solid var(--border);margin-bottom:1.5rem;}
+.az-verdict-cell{background:rgba(27,43,75,.6);padding:1.2rem;text-align:center;}
+.az-v-title{font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(201,168,76,.45);margin-bottom:.6rem;}
+.az-v-score{font-family:'Cormorant Garamond',serif;font-size:2.8rem;font-weight:700;line-height:1;}
+.az-v-label{font-size:.75rem;font-weight:600;margin-top:.3rem;}
+.verdict-buy{color:#4CAF7D;}
+.verdict-maybe{color:var(--gold-l);}
+.verdict-pass{color:#FF8080;}
+.az-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;}
+.az-col{background:rgba(27,43,75,.5);border:1px solid var(--border);}
+.az-col-hdr{padding:.8rem 1rem;border-bottom:1px solid var(--border);
+  background:rgba(15,26,46,.5);}
+.az-col-name{font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:600;color:var(--cream);}
+.az-col-sub{font-size:.65rem;color:rgba(201,168,76,.5);margin-top:.15rem;}
+.az-col-body{padding:.9rem 1rem;}
+.az-metric{display:flex;justify-content:space-between;align-items:center;
+  padding:.45rem 0;border-bottom:1px solid rgba(201,168,76,.06);}
+.az-metric:last-child{border-bottom:none;}
+.az-m-label{font-size:.72rem;color:rgba(248,245,239,.5);}
+.az-m-val{font-family:'Barlow Condensed',sans-serif;font-size:.95rem;font-weight:600;color:var(--cream);}
+.az-m-val.good{color:#4CAF7D;}
+.az-m-val.warn{color:var(--gold-l);}
+.az-m-val.bad{color:#FF8080;}
+.az-ai-box{background:rgba(27,43,75,.4);border:1px solid var(--border);
+  border-left:3px solid var(--gold);padding:1rem 1.1rem;margin-bottom:1.2rem;}
+.az-ai-label{font-size:.6rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem;}
+.az-ai-text{font-size:.84rem;line-height:1.75;color:rgba(248,245,239,.78);}
+.az-warn-box{background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.2);
+  padding:.8rem 1rem;font-size:.78rem;color:rgba(248,245,239,.5);line-height:1.6;
+  border-left:3px solid rgba(201,168,76,.3);}
+/* ZILLOW BUTTONS */
+.mrow-footer{padding:.4rem .9rem .55rem;border-top:1px solid rgba(201,168,76,.07);
+  display:flex;gap:.5rem;align-items:center;}
+.zl-btn{font-size:.6rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  padding:.25rem .65rem;border:1px solid rgba(201,168,76,.22);color:rgba(201,168,76,.6);
+  background:none;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-block;}
+.zl-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.06);}
+@media(max-width:768px){
+  .az-fields{grid-template-columns:1fr 1fr;}
+  .az-cols{grid-template-columns:1fr;}
+  .az-verdict-row{grid-template-columns:1fr;}
+  .az-input-row{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="bgrid"></div>
+
+<nav>
+  <div class="nav-logo">ADJL <span>Capital</span></div>
+  <div class="nav-tabs">
+    <button class="tb active" onclick="setV('top20')">Top 20</button>
+    <button class="tb" onclick="setV('all50')">All 50 States</button>
+    <button class="tb" onclick="setV('college')">College Towns</button>
+    <button class="tb" onclick="setV('defense')">Defense & Tech</button>
+    <button class="tb" onclick="setV('compare')">Compare</button>
+    <button class="tb" onclick="setV('analyze')" style="background:rgba(201,168,76,.12);border-color:var(--gold);color:var(--gold)">⚡ Analyze Property</button>
+  </div>
+</nav>
+
+<main>
+<div class="hero">
+  <div class="hero-row">
+    <div><h1 class="hero-hl">70 Markets.<br><em>Click any to explore.</em></h1></div>
+    <p class="hero-sub">All 50 states + 20 curated markets. Click any row for an AI-powered growth synopsis, median home price, rental data, and ADJL investment strategy. June 2026.</p>
+  </div>
+  <div class="sbar">
+    <div class="sc"><span class="sv">50</span><span class="sl">States Covered</span></div>
+    <div class="sc"><span class="sv">20</span><span class="sl">Curated Markets</span></div>
+    <div class="sc"><span class="sv">$175K</span><span class="sl">Lowest Entry</span></div>
+    <div class="sc"><span class="sv">$835K</span><span class="sl">Highest (HI)</span></div>
+    <div class="sc"><span class="sv">$355K</span><span class="sl">National Avg</span></div>
+    <div class="sc"><span class="sv">2026</span><span class="sl">Live Data</span></div>
+  </div>
+</div>
+
+<div class="view-wrap">
+
+<!-- TOP 20 VIEW -->
+<div id="vTop20">
+  <div class="fbar">
+    <span class="fl">Filter:</span>
+    <button class="fb active" onclick="filt('all',this)">All</button>
+    <button class="fb" onclick="filt('college',this)">College</button>
+    <button class="fb" onclick="filt('military',this)">Military</button>
+    <button class="fb" onclick="filt('tech',this)">Tech</button>
+    <button class="fb" onclick="filt('defense',this)">Defense</button>
+    <input class="sb" type="text" placeholder="Search…" oninput="srch(this.value,'top')">
+  </div>
+  <div class="split">
+    <div class="list-col" id="topList">
+      <div class="sec-hdr"><span class="sh-title"><em>College Town</em> Markets</span><div class="sh-line"></div><span class="sh-ct">10 Markets</span></div>
+      <div id="clg-rows"></div>
+      <div class="sec-hdr" style="margin-top:1.2rem"><span class="sh-title"><em>Defense & Tech</em> Boom Markets</span><div class="sh-line"></div><span class="sh-ct">10 Markets</span></div>
+      <div id="def-rows"></div>
+    </div>
+    <div class="detail" id="det-top">
+      <div class="d-empty" id="emp-top"><h3>Select a Market</h3><p>Click any row for AI growth synopsis, pricing, and strategy.</p></div>
+      <div class="d-content" id="dc-top"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ALL 50 STATES VIEW -->
+<div id="vAll50" class="hidden">
+  <div class="fbar">
+    <span class="fl">Sort:</span>
+    <button class="fb active" onclick="sortStates('alpha',this)">A–Z</button>
+    <button class="fb" onclick="sortStates('price_asc',this)">Price ↑</button>
+    <button class="fb" onclick="sortStates('price_desc',this)">Price ↓</button>
+    <button class="fb" onclick="sortStates('hot',this)">Hottest</button>
+    <input class="sb" type="text" placeholder="Search state…" oninput="srch(this.value,'state')">
+  </div>
+  <div class="split">
+    <div class="list-col" id="stateList"></div>
+    <div class="detail" id="det-state">
+      <div class="d-empty" id="emp-state"><h3>Select a State</h3><p>Click any state for an AI-powered analysis of its real estate market, investment outlook, and key cities.</p></div>
+      <div class="d-content" id="dc-state"></div>
+    </div>
+  </div>
+</div>
+
+<!-- COLLEGE VIEW -->
+<div id="vCollege" class="hidden">
+  <div class="split">
+    <div class="list-col" id="clg-only"></div>
+    <div class="detail" id="det-clg">
+      <div class="d-empty" id="emp-clg"><h3>Select a Market</h3><p>Click for full AI analysis.</p></div>
+      <div class="d-content" id="dc-clg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DEFENSE VIEW -->
+<div id="vDefense" class="hidden">
+  <div class="split">
+    <div class="list-col" id="def-only"></div>
+    <div class="detail" id="det-def">
+      <div class="d-empty" id="emp-def"><h3>Select a Market</h3><p>Click for full AI analysis.</p></div>
+      <div class="d-content" id="dc-def"></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPARE TABLE -->
+<div id="vCompare" class="hidden">
+  <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.7rem;font-weight:300;color:var(--cream);margin-bottom:1.2rem">All 70 Markets — <em style="font-style:italic;color:var(--gold)">Side by Side</em></h2>
+  <table class="ctbl"><thead><tr>
+    <th>ID</th><th>Market / State</th><th>Type</th><th>Median Price</th><th>Avg Rent</th><th>Growth</th><th>Score</th>
+  </tr></thead><tbody id="cmpBody"></tbody></table>
+</div>
+
+
+<!-- ANALYZE VIEW -->
+<div id="vAnalyze" class="hidden">
+  <div class="az-wrap">
+    <div class="az-hero">
+      <h2 class="az-hl">Property <em>Investment Analyzer</em></h2>
+      <p class="az-sub">Paste a Zillow or Redfin URL, or enter property details manually.<br>Get a full investment analysis across three ownership scenarios side by side.</p>
+    </div>
+
+    <!-- URL INPUT -->
+    <div class="az-input-row">
+      <input class="az-url" id="azUrl" type="text" placeholder="Paste Zillow or Redfin URL (e.g. zillow.com/homedetails/…)">
+      <button class="az-btn" onclick="fetchAndAnalyze()">Analyze URL</button>
+    </div>
+
+    <div class="az-or">— or enter details manually —</div>
+
+    <!-- MANUAL INPUT -->
+    <div class="az-manual">
+      <div class="az-manual-title">Property Details</div>
+      <div class="az-fields">
+        <div class="az-field"><label>City / Market</label><input id="azCity" placeholder="e.g. College Station, TX"></div>
+        <div class="az-field"><label>Purchase Price ($)</label><input id="azPrice" type="number" placeholder="445000"></div>
+        <div class="az-field"><label>Number of Units</label><input id="azUnits" type="number" placeholder="4" min="1" max="20"></div>
+        <div class="az-field"><label>Beds per Unit</label><input id="azBeds" type="number" placeholder="2" min="1" max="8"></div>
+        <div class="az-field"><label>Monthly Rent / Unit ($)</label><input id="azRent" type="number" placeholder="1300"></div>
+        <div class="az-field"><label>Strategy</label>
+          <select class="az-sel" id="azStrategy">
+            <option value="unit">Per Unit (whole unit)</option>
+            <option value="room">Per Room (per bedroom)</option>
+          </select>
+        </div>
+        <div class="az-field"><label>Year Built</label><input id="azYear" type="number" placeholder="1990"></div>
+        <div class="az-field"><label>Sq Ft (total)</label><input id="azSqft" type="number" placeholder="3600"></div>
+        <div class="az-field"><label>Mortgage Rate (%)</label><input id="azRate" type="number" placeholder="6.0" step="0.1"></div>
+      </div>
+      <div style="margin-top:1rem;text-align:right">
+        <button class="az-btn" onclick="runManualAnalysis()">Run Analysis</button>
+      </div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="az-loading" id="azLoading">
+      <div style="display:flex;align-items:center;justify-content:center;gap:.8rem;margin-bottom:.6rem">
+        <div class="ldots"><span></span><span></span><span></span></div>
+        <span style="font-size:.85rem;color:var(--muted)">Analyzing property…</span>
+      </div>
+      <p style="font-size:.75rem;color:rgba(248,245,239,.3)">Running DSCR, IRR, and cap rate calculations across all three scenarios</p>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="az-results hidden" id="azResults"></div>
+  </div>
+</div>
+</div><!-- view-wrap -->
+</main>
+
+<footer style="position:relative;z-index:1;border-top:1px solid var(--border);
+  padding:1.1rem 2.5rem;display:flex;align-items:center;justify-content:space-between;
+  background:rgba(6,13,26,.85);">
+  <div style="font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:700;
+    letter-spacing:.15em;color:var(--cream)">ADJL <span style="color:var(--gold)">Capital</span></div>
+  <p style="font-size:.62rem;color:rgba(248,245,239,.2);max-width:500px;text-align:center;line-height:1.5">
+    Data from Yardi Matrix, CBRE, FreeFinCalc, Redfin, Zillow, WorldPopulationReview, PropertyCEO — June 2026. Informational only. Not an offer of securities.</p>
+  <div style="font-size:.62rem;color:rgba(248,245,239,.18)">© 2026 ADJL Capital, LLC</div>
+</footer>
+
+<script>
+// ── CURATED TOP 20 ─────────────────────────────────────────
+const TOP20=[
+  {id:'c1',rank:'C-01',cat:'college',tcls:'tc',tlbl:'College',score:9.5,active:false,
+   city:'College Station, TX',drv:'Texas A&M · 74,000+ students',
+   median:'$395,000',rent:'$1,253/mo',growth:'+0.2%',vac:'Low',perRoom:'$850–950/bed',bc:'bu',
+   why:"74,000-student university creates insatiable demand. Fourplexes at $350K–$500K. Per-room leasing at $900/bed generates strong cash flow. No Texas state income tax. Ideal target market for ADJL's per-room strategy.",
+   strat:"Buy fourplexes within 3 miles of campus. Per-room to Aggie students. Hire local PM at 10%.",
+   risk:"Oversupply in some submarkets. Verify per-room comps before committing."},
+  {id:'c2',rank:'C-02',cat:'college',tcls:'tc',tlbl:'College',score:9.2,
+   city:'Tuscaloosa, AL',drv:'University of Alabama · 38,000+ students',
+   median:'$280,000',rent:'$1,299/mo',growth:'+1.9%',vac:'Very Low',perRoom:'$800–1,600/bed',bc:'bu',
+   why:"Ranked #1 nationally for college town investing. Game-day STR demand near Bryant-Denny Stadium pushes rents to $1,600/bed. Low entry prices make DSCR math easy.",
+   strat:"Properties within 0.5 mi of stadium. Combine game-day Airbnb with student leases.",
+   risk:"Market awareness rising — competition increasing. Act before prices fully catch up."},
+  {id:'c3',rank:'C-03',cat:'college tech',tcls:'tt',tlbl:'College+Tech',score:9.0,
+   city:'Columbus, OH',drv:'Ohio State · Intel $20B · 60,000+ students',
+   median:'$335,000',rent:'$1,423/mo',growth:'+3.1%',vac:'<5% near campus',perRoom:'$500–700/bed',bc:'bu',
+   why:"3rd largest US campus + Intel $20B semiconductor plant adding thousands of jobs. Housing deficit of 14K–19K units/year. Prices 33% below national avg.",
+   strat:"University District (43201/43202) for student demand. Clintonville for grad students.",
+   risk:"Property taxes ~1.8% + 2.5% Columbus municipal income tax."},
+  {id:'c4',rank:'C-04',cat:'college',tcls:'tc',tlbl:'College',score:8.8,
+   city:'Gainesville, FL',drv:'University of Florida · 52,000+ students',
+   median:'$300,000',rent:'$1,629/mo',growth:'+2.5%',vac:'62% renter city',perRoom:'$700–900/bed',bc:'bu',
+   why:"No FL state income tax, no STR permit requirements. 52K students, 62% renters. Gators football drives game-day STR premium.",
+   strat:"Long-term student leases + Gators game-day STR. No permit barriers.",
+   risk:"Hurricane exposure — budget for insurance. Some HOA STR restrictions."},
+  {id:'c5',rank:'C-05',cat:'college',tcls:'tc',tlbl:'College',score:8.3,
+   city:'Athens, GA',drv:'University of Georgia · 40,000+ students',
+   median:'$307,000',rent:'$1,200–1,500',growth:'+5.1%',vac:'Low',perRoom:'$700–900/bed',bc:'bu',
+   why:"UGA drives 40K students. Home values up 5.1% YoY. $307K entry is very accessible for multifamily.",
+   strat:"Five Points and Normaltown near campus. Strong local economy beyond university.",
+   risk:"Georgia income tax 5.49%. Some occupancy limits on unrelated tenants."},
+  {id:'c6',rank:'C-06',cat:'college',tcls:'tc',tlbl:'College',score:8.1,
+   city:'Auburn, AL',drv:'Auburn University · 31,000+ students',
+   median:'$408,000',rent:'$1,200–1,600',growth:'+0.4%',vac:'Very Low',perRoom:'$800–1,100/bed',bc:'bw',
+   why:"Parent-purchase model — parents buy for student children — unique demand driver. Iron Bowl weekend STR premium. Cost of living 4% below national avg.",
+   strat:"Within 1 mi of campus. Market to parents of incoming freshmen.",
+   risk:"Slightly pricier than Tuscaloosa. Market awareness rising fast."},
+  {id:'c7',rank:'C-07',cat:'college',tcls:'tc',tlbl:'College',score:7.9,
+   city:'Harrisonburg, VA',drv:'James Madison University · 22,000+ students',
+   median:'$369,000',rent:'$1,200–1,500',growth:'+2–3%',vac:'26-day avg',perRoom:'$700–950/bed',bc:'bu',
+   why:"JMU demand in a tight, contained market. Only 26 days avg on market. Grad students rent year-round.",
+   strat:"Move fast — deals don't sit. Target 4-unit properties near JMU.",
+   risk:"Virginia income tax. Smaller market — less deal flow."},
+  {id:'c8',rank:'C-08',cat:'college tech',tcls:'tt',tlbl:'College+Tech',score:7.8,
+   city:'Indianapolis, IN',drv:'IUPUI + Butler + Purdue · #1 Multifamily Spring 2026',
+   median:'$265,000',rent:'$1,200–1,400',growth:'+3–5%',vac:'Low',perRoom:'$500–700/bed',bc:'bu',
+   why:"#1 multifamily market Spring 2026. $265K median. Indiana landlord-friendly laws. Strong healthcare, logistics, tech job market.",
+   strat:"Broad Ripple and Fountain Square. Professional + student mix = low turnover.",
+   risk:"Less pure college play. Cold winters = higher utility costs."},
+  {id:'c9',rank:'C-09',cat:'college',tcls:'tc',tlbl:'Value Entry',score:7.3,
+   city:'Ypsilanti, MI',drv:'Eastern Michigan + UM overflow · 15,000+ students',
+   median:'$175,000',rent:'$900–1,200',growth:'+2–4%',vac:'Moderate',perRoom:'$600–800/bed',bc:'bw',
+   why:"Lowest entry price on the list. Ann Arbor/UM overflow demand. Ideal for multi-property BRRRR strategy.",
+   strat:"Buy multiple properties. BRRRR at these prices. Near EMU campus.",
+   risk:"Lower rents per door. Michigan weather = higher maintenance."},
+  {id:'d1',rank:'D-01',cat:'military defense',tcls:'tm',tlbl:'Military',score:9.3,
+   city:'San Antonio, TX',drv:'JBSA — 4 Installations · 80,000+ Personnel',
+   median:'$284,000',rent:'$1,295/mo',growth:'+3.1%',vac:'6.5%',perRoom:'N/A',bc:'bu',
+   why:"Largest joint base in the US. $41B annual economic impact. No TX income tax. BAH increased 4.2% in 2026. Most affordable major Texas metro.",
+   strat:"Near JBSA: Universal City, Converse, Live Oak. Military tenants = reliable BAH income.",
+   risk:"New construction competing. Inventory up 11.5% — negotiate hard."},
+  {id:'d2',rank:'D-02',cat:'tech',tcls:'tt',tlbl:'Tech Hub',score:8.8,
+   city:'Raleigh-Durham, NC',drv:'Research Triangle · Apple + Google + Amazon',
+   median:'$420,000',rent:'$1,500–1,800',growth:'+1.6%',vac:'Tightening',perRoom:'N/A',bc:'bu',
+   why:"19,600 net jobs added in 12 months. $1.1B multifamily investment in 2025. Price per unit up 18.5% YoY. Supply wave absorbed.",
+   strat:"SE Raleigh and Durham downtown. Young tech workers 25-35.",
+   risk:"$420K entry. Durham had -12.8% rent decline in 2025 — verify submarket."},
+  {id:'d3',rank:'D-03',cat:'defense tech',tcls:'td',tlbl:'Defense/Cyber',score:8.7,
+   city:'Augusta, GA',drv:'US Army Cyber Command · $2B Data Center · Fort Eisenhower',
+   median:'$207,000',rent:'$1,100–1,400',growth:'+1.3% jobs',vac:'92.9% occ.',perRoom:'N/A',bc:'bu',
+   why:"$2B data center coming online mid-2026. Army Cyber Command brings permanent tech professionals. $207K median — best value on list. Institutional investors like Blackfin already buying here.",
+   strat:"Grovetown and Martinez near Fort Eisenhower. Military BAH covers rent easily.",
+   risk:"Supply wave absorbing. Georgia income tax."},
+  {id:'d4',rank:'D-04',cat:'tech',tcls:'tt',tlbl:'Finance/Tech',score:8.5,
+   city:'Charlotte, NC',drv:'Bank of America HQ · Tech Expansion',
+   median:'$400,000',rent:'$1,400–1,700',growth:'+2.1%',vac:'Low',perRoom:'N/A',bc:'bu',
+   why:"2nd largest banking center. Top 5 nationally for multifamily rent growth. Supply peaked 2025 — CBRE projects above-avg rent growth through 2026+.",
+   strat:"South End and Uptown for young professionals. Huntersville for families.",
+   risk:"$400K entry. Verify submarket supply absorption."},
+  {id:'d5',rank:'D-05',cat:'tech growth',tcls:'tt',tlbl:'Growth City',score:8.4,
+   city:'Nashville, TN',drv:"Amazon HQ · Oracle Campus · Healthcare",
+   median:'$430,000',rent:'$1,600–1,900',growth:'+2–3%',vac:'Low',perRoom:'N/A',bc:'bu',
+   why:"Amazon $230M ops center, Oracle campus, Vanderbilt/HCA healthcare. No TN income tax. High tenant retention.",
+   strat:"East Nashville, Germantown. Antioch for workforce housing.",
+   risk:"$430K upper end. STR regulations tightening in Nashville proper."},
+  {id:'d6',rank:'D-06',cat:'defense tech',tcls:'td',tlbl:'Aerospace',score:8.3,
+   city:'Huntsville, AL',drv:'NASA + Boeing + Lockheed + Redstone Arsenal',
+   median:'$325,000',rent:'$1,200–1,400',growth:'+4–7% projected',vac:'Core tight',perRoom:'N/A',bc:'bu',
+   why:"NASA, Boeing, Lockheed, Northrop, Redstone Arsenal. Fastest growing AL city. Defense contractor tenants earn $80K–$150K+.",
+   strat:"Downtown, Twickenham, Madison for workforce housing. Avoid luxury apartments.",
+   risk:"Elevated vacancy in some submarkets after 2025 new construction."},
+  {id:'d7',rank:'D-07',cat:'military defense',tcls:'tm',tlbl:'Military',score:7.9,
+   city:'Colorado Springs, CO',drv:'Fort Carson + NORAD + Space Force HQ',
+   median:'$430,000',rent:'$1,500–1,800',growth:'+2–4%',vac:'Low',perRoom:'N/A',bc:'bu',
+   why:"5 military installations. Space Force HQ expansion = new personnel annually. Denver overflow. Among highest BAH rates nationally.",
+   strat:"Near Fort Carson and Peterson SFB. Powers Corridor for Space Force.",
+   risk:"$430K median. Colorado income tax. Denver metro price volatility."},
+  {id:'d8',rank:'D-08',cat:'tech',tcls:'tt',tlbl:'Tech Mfg',score:7.8,
+   city:'Boise, ID',drv:'Micron $15B Chip Plant · Recovery Play',
+   median:'$440,000',rent:'$1,400–1,700',growth:'+1.0%',vac:'12% falling',perRoom:'N/A',bc:'bw',
+   why:"Micron $15B semiconductor plant. Vacancy peaked at 18% in 2025 — projected 6% by end of 2026. Classic buy-before-recovery window.",
+   strat:"Buy NOW while vacancy elevated. Negotiate hard. Market tightens significantly by Q4 2026.",
+   risk:"Cash flow weak in year 1. $440K. Idaho income tax."},
+  {id:'d9',rank:'D-09',cat:'military defense',tcls:'tm',tlbl:'Naval',score:7.8,
+   city:'Hampton Roads, VA',drv:"World's Largest Naval Base · 100,000+ Military",
+   median:'$330,000',rent:'$1,400–1,700',growth:'+2–3%',vac:'Low',perRoom:'N/A',bc:'bu',
+   why:"Naval Station Norfolk. 100,000+ military and defense contractor workforce. Most stable tenant base in real estate — BAH guaranteed by US gov.",
+   strat:"Norfolk, Chesapeake, Virginia Beach within 15 min of base gates.",
+   risk:"Virginia income tax. Well-known market — competition exists."},
+  {id:'d10',rank:'D-10',cat:'logistics growth',tcls:'tl',tlbl:'Logistics',score:7.6,
+   city:'Savannah, GA',drv:'Port of Savannah · Amazon · Logistics Boom',
+   median:'$310,000',rent:'$1,300–1,600',growth:'+3–5%',vac:'Tightening',perRoom:'N/A',bc:'bu',
+   why:"Fastest-growing US port. Amazon, Target, IKEA distribution centers. Price per unit grew 75.3% — highest in peer group.",
+   strat:"Workforce housing near port. Blue-collar $50K–$80K tenants. Consider Pooler suburb.",
+   risk:"Supply wave still absorbing. Hurricane/flood risk — premium insurance."},
+];
+
+// ── ALL 50 STATES ──────────────────────────────────────────
+// Data: median price from FreeFinCalc 2026, avg rent from PropertyCEO/WorldPopReview 2026
+// Investment rating: HOT / GOOD / MODERATE / CAUTION
+const STATES=[
+  {abbr:'AL',name:'Alabama',price:'$255,000',rent:'$1,050',growth:'+3.2%',inv:'hot',invL:'Hot',
+   driver:'Defense, aerospace (Huntsville), automotive manufacturing, University of Alabama',
+   note:'Huntsville leads as fastest-growing city. Low taxes, landlord-friendly laws. Tuscaloosa ranked #1 college town nationally.'},
+  {abbr:'AK',name:'Alaska',price:'$335,000',rent:'$1,380',growth:'+1.1%',inv:'mod',invL:'Moderate',
+   driver:'Federal employment, oil & gas, military (JBER)',
+   note:'High cost of living limits cash flow. Remote management challenges. Best for long-term holds near Anchorage.'},
+  {abbr:'AZ',name:'Arizona',price:'$415,000',rent:'$1,650',growth:'+6–8%',inv:'good',invL:'Good',
+   driver:'Intel/TSMC semiconductor fabs, retiree migration, tech expansion in Phoenix/Scottsdale',
+   note:'Phoenix and Tucson metro areas offer strong appreciation. Low property taxes (0.6–0.7%). Supply headwinds from new construction.'},
+  {abbr:'AR',name:'Arkansas',price:'$195,000',rent:'$920',growth:'+2.1%',inv:'good',invL:'Good',
+   driver:'Walmart HQ, logistics, poultry processing, University of Arkansas',
+   note:'One of the most affordable entry points in the country. Fayetteville/Bentonville corridor growing fast on Walmart supplier jobs. Low property taxes.'},
+  {abbr:'CA',name:'California',price:'$785,000',rent:'$2,700',growth:'+2.3%',inv:'cau',invL:'Caution',
+   driver:'Tech (Silicon Valley, LA), entertainment, agriculture, ports',
+   note:'High entry prices compress yields. Rent control in many cities. Strong appreciation but cash flow is extremely difficult. Tenant-friendly laws.'},
+  {abbr:'CO',name:'Colorado',price:'$545,000',rent:'$2,095',growth:'+3.1%',inv:'good',invL:'Good',
+   driver:'Denver tech corridor, defense (NORAD, Space Force), tourism, University of Colorado',
+   note:'Colorado Springs is strong military play. Denver is expensive but appreciates. Mountain towns (Breckenridge) offer STR upside.'},
+  {abbr:'CT',name:'Connecticut',price:'$395,000',rent:'$1,750',growth:'+4.2%',inv:'mod',invL:'Moderate',
+   driver:'Finance (Hartford insurance), Yale/UConn, defense manufacturing (Pratt & Whitney)',
+   note:'Strong appreciation recently but high taxes and landlord regulations. Best near New Haven (Yale) or Hartford for professional tenants.'},
+  {abbr:'DE',name:'Delaware',price:'$325,000',rent:'$1,500',growth:'+3.5%',inv:'good',invL:'Good',
+   driver:'Corporate HQs, finance, University of Delaware, proximity to Philadelphia/DC',
+   note:'No sales tax. Strong demand from Philadelphia and DC overflow. University of Delaware provides student rental market. Relatively landlord-friendly.'},
+  {abbr:'FL',name:'Florida',price:'$405,000',rent:'$1,750',growth:'+2.8%',inv:'good',invL:'Good',
+   driver:'No state income tax, retiree migration, tech expansion, tourism, ports',
+   note:'Tampa, Orlando, Jacksonville offer solid cash flow. Gainesville is top college market. Hurricane insurance costs rising significantly.'},
+  {abbr:'GA',name:'Georgia',price:'$335,000',rent:'$1,450',growth:'+4.1%',inv:'hot',invL:'Hot',active:true,
+   driver:'Atlanta tech hub, film industry, ports (Savannah), military (Fort Eisenhower), UGA/Georgia Tech',
+   note:'★ ADJL ACTIVE DEAL — Atlanta. Atlanta appreciation strong. Augusta is best-kept secret (Cyber Command + $2B data center). Athens growing fast. Savannah port boom.'},
+  {abbr:'HI',name:'Hawaii',price:'$835,000',rent:'$2,350',growth:'+1.2%',inv:'cau',invL:'Caution',
+   driver:'Tourism, military (Pearl Harbor), agriculture, remote work migration',
+   note:'Highest median prices in the US. STR regulations very strict. Cash flow nearly impossible. Appreciation play only — not suitable for ADJL strategy.'},
+  {abbr:'ID',name:'Idaho',price:'$415,000',rent:'$1,500',growth:'+1.0%',inv:'good',invL:'Good',
+   driver:"Micron's $15B chip plant, tech migration from CA, Boise State University",
+   note:'Boise is the contrarian buy — 12% vacancy falling fast to projected 6% by Q4 2026 as Micron jobs ramp. Buy-before-recovery window closing.'},
+  {abbr:'IL',name:'Illinois',price:'$285,000',rent:'$1,250',growth:'+2.1%',inv:'mod',invL:'Moderate',
+   driver:'Chicago financial hub, tech, healthcare, University of Illinois/Northwestern',
+   note:'Chicago offers strong yields in certain neighborhoods but high property taxes (2.2%) and landlord regulations eat into returns. Outstate IL very affordable.'},
+  {abbr:'IN',name:'Indiana',price:'$230,000',rent:'$1,100',growth:'+3.8%',inv:'hot',invL:'Hot',
+   driver:'#1 multifamily market Spring 2026 — Indianapolis healthcare/logistics/tech. Purdue, IU, Notre Dame',
+   note:'Indianapolis is #1 multifamily market. Extremely landlord-friendly. Low property taxes. Affordable entry. Strong cash flow fundamentals.'},
+  {abbr:'IA',name:'Iowa',price:'$215,000',rent:'$1,000',growth:'+2.5%',inv:'mod',invL:'Moderate',
+   driver:'Agriculture, insurance (Des Moines), University of Iowa, John Deere',
+   note:'Very affordable entry. Strong cash flow potential. Iowa City (U of Iowa) is a solid college market. Low population growth limits appreciation upside.'},
+  {abbr:'KS',name:'Kansas',price:'$225,000',rent:'$1,050',growth:'+2.3%',inv:'mod',invL:'Moderate',
+   driver:'Agriculture, aviation manufacturing (Wichita), military (Fort Riley, McConnell AFB)',
+   note:'Wichita is an emerging market with aviation manufacturing jobs. Landlord-friendly. Low entry prices. Limited growth catalysts outside military/aviation.'},
+  {abbr:'KY',name:'Kentucky',price:'$220,000',rent:'$1,000',growth:'+2.8%',inv:'good',invL:'Good',
+   driver:'Louisville healthcare/logistics, bourbon tourism, University of Kentucky/Louisville',
+   note:'Louisville is consistently ranked top cash flow market. $900 avg rent at $220K prices = strong returns. Landlord-friendly. Amazon Louisville logistics hub.'},
+  {abbr:'LA',name:'Louisiana',price:'$205,000',rent:'$1,000',growth:'+1.5%',inv:'mod',invL:'Moderate',
+   driver:'Oil & gas, ports (New Orleans), LSU, tourism',
+   note:'Very affordable but hurricane risk is significant — insurance costs rising. LSU creates student market in Baton Rouge. New Orleans STR market strong but heavily regulated.'},
+  {abbr:'ME',name:'Maine',price:'$365,000',rent:'$1,500',growth:'+4.5%',inv:'good',invL:'Good',
+   driver:'Remote work migration, tourism, University of Maine, healthcare',
+   note:'Strong appreciation driven by coastal demand and remote worker migration from Boston/NYC. Portland is a hot market. Seasonal rental premium near coastline.'},
+  {abbr:'MD',name:'Maryland',price:'$395,000',rent:'$1,800',growth:'+3.2%',inv:'good',invL:'Good',
+   driver:'Federal government, defense (NSA, DISA, Fort Meade), Johns Hopkins, proximity to DC',
+   note:'Fort Meade is the NSA headquarters — strong defense/cyber civilian workforce. DC suburbs offer steady professional tenants. High taxes limit net returns.'},
+  {abbr:'MA',name:'Massachusetts',price:'$585,000',rent:'$2,350',growth:'+3.8%',inv:'mod',invL:'Moderate',
+   driver:'Boston tech/biotech, Harvard/MIT, financial services, healthcare',
+   note:'Very strong appreciation but high entry prices and strict rent control in Boston compress yields. Outside Boston (Worcester, Springfield) better cash flow.'},
+  {abbr:'MI',name:'Michigan',price:'$235,000',rent:'$1,100',growth:'+2.8%',inv:'good',invL:'Good',
+   driver:'EV transition (GM, Ford, Stellantis), University of Michigan, Michigan State',
+   note:'Ypsilanti is best-value college market. Ann Arbor strong but pricey. EV manufacturing driving Grand Rapids growth. Low entry prices statewide.'},
+  {abbr:'MN',name:'Minnesota',price:'$315,000',rent:'$1,595',growth:'+2.8%',inv:'good',invL:'Good',
+   driver:'Minneapolis tech/healthcare, Mall of America, University of Minnesota, medical devices (Medtronic)',
+   note:'Minneapolis ranked for multifamily rent growth (+2.8% YoY May 2026). Strong professional tenant base. Cold climate = higher operating costs.'},
+  {abbr:'MS',name:'Mississippi',price:'$175,000',rent:'$870',growth:'+1.8%',inv:'mod',invL:'Moderate',
+   driver:'Agriculture, gaming (Gulf Coast), military (Keesler AFB), University of Mississippi',
+   note:'Lowest entry price in the South. Limited appreciation potential. Ole Miss creates student market in Oxford. Gulf Coast casinos drive STR demand.'},
+  {abbr:'MO',name:'Missouri',price:'$240,000',rent:'$1,100',growth:'+3.1%',inv:'good',invL:'Good',
+   driver:'St. Louis healthcare/biotech, Kansas City tech, Anheuser-Busch, Mizzou/Wash U',
+   note:'Kansas City leads nationally on appreciation. St. Louis offers value plays. Landlord-friendly state. Low property taxes. Strong cash flow fundamentals.'},
+  {abbr:'MT',name:'Montana',price:'$445,000',rent:'$1,400',growth:'+1.2%',inv:'mod',invL:'Moderate',
+   driver:'Remote work migration, tourism, agriculture, Montana State University',
+   note:'Bozeman had explosive growth — now cooling with 12% multifamily vacancy. Good for long-term holds but cash flow tight at current prices. STR strong near ski resorts.'},
+  {abbr:'NE',name:'Nebraska',price:'$250,000',rent:'$1,050',growth:'+2.4%',inv:'good',invL:'Good',
+   driver:'Agriculture, insurance (Berkshire Hathaway HQ), University of Nebraska, Offutt AFB',
+   note:'Very affordable. Omaha is consistently strong — Berkshire Hathaway draws financial talent. Landlord-friendly. Strong cash flow at these prices.'},
+  {abbr:'NV',name:'Nevada',price:'$415,000',rent:'$1,600',growth:'+2.5%',inv:'good',invL:'Good',
+   driver:'Las Vegas gaming/tourism, Reno tech migration (Tesla Gigafactory, Apple), no state income tax',
+   note:'No state income tax. Las Vegas recovering from oversupply. Reno is the emerging tech play — Tesla, Google, Switch data centers. STR strong in Vegas.'},
+  {abbr:'NH',name:'New Hampshire',price:'$445,000',rent:'$1,700',growth:'+4.1%',inv:'good',invL:'Good',
+   driver:'Boston overflow, tech (Manchester), no state income tax, University of New Hampshire',
+   note:'No income tax draws Boston remote workers. Southern NH (Manchester, Nashua) is affordable Boston alternative. Strong appreciation. Limited rental regulations.'},
+  {abbr:'NJ',name:'New Jersey',price:'$495,000',rent:'$1,950',growth:'+3.5%',inv:'mod',invL:'Moderate',
+   driver:'NYC overflow, pharma (J&J, Merck), finance, Princeton/Rutgers, port logistics',
+   note:"ADJL Capital's home state. Strong rents but high property taxes (2.5%+) and landlord regulations. NYC proximity drives consistent demand. Entry prices are high."},
+  {abbr:'NM',name:'New Mexico',price:'$285,000',rent:'$1,100',growth:'+2.2%',inv:'mod',invL:'Moderate',
+   driver:'Military (Kirtland AFB, White Sands), oil & gas, University of New Mexico, tourism',
+   note:'Albuquerque offers affordable entry. Kirtland AFB provides military demand. Intel has a large fab facility. Limited population growth limits upside.'},
+  {abbr:'NY',name:'New York',price:'$485,000',rent:'$2,200',growth:'+2.1%',inv:'mod',invL:'Moderate',
+   driver:'NYC finance/tech, Columbia/Cornell/NYU, healthcare, media',
+   note:'NYC yields are compressed but appreciation is strong. Upstate NY (Buffalo, Albany) offers strong cash flow at low prices. Strict tenant protections statewide.'},
+  {abbr:'NC',name:'North Carolina',price:'$355,000',rent:'$1,550',growth:'+3.2%',inv:'hot',invL:'Hot',
+   driver:'Research Triangle (Apple/Google/Amazon), Charlotte finance, Duke/UNC/NC State, military',
+   note:'Raleigh-Durham and Charlotte are top national markets. Apple, Google, Amazon operations. Rent growth #5 nationally (Charlotte). Strong job creation.'},
+  {abbr:'ND',name:'North Dakota',price:'$235,000',rent:'$1,050',growth:'+4.8%',inv:'good',invL:'Good',
+   driver:'Oil & gas, agriculture, military (Grand Forks AFB), University of North Dakota',
+   note:'Highest annual rent growth nationally in 2026. Low vacancy. Affordable entry. Energy sector stabilizing. Fargo is the commercial hub with strong university market.'},
+  {abbr:'OH',name:'Ohio',price:'$230,000',rent:'$1,200',growth:'+3.1%',inv:'hot',invL:'Hot',
+   driver:'Intel $20B semiconductor plant (Columbus), Ohio State, Cleveland healthcare, Cincinnati',
+   note:'Columbus is top 3 nationally for multifamily investment. Cleveland has 9.8% rental yield. Cincinnati ranked #1 hottest rental market heading into 2026. Strong cash flow statewide.'},
+  {abbr:'OK',name:'Oklahoma',price:'$215,000',rent:'$1,050',growth:'+2.0%',inv:'good',invL:'Good',
+   driver:'Oil & gas, aerospace (Tinker AFB), University of Oklahoma, Oklahoma State',
+   note:'Oklahoma City is a consistent top cash flow market — $875 avg 1BR rent. Very affordable entry. Landlord-friendly. Energy sector driving steady employment.'},
+  {abbr:'OR',name:'Oregon',price:'$475,000',rent:'$1,750',growth:'+1.5%',inv:'mod',invL:'Moderate',
+   driver:'Portland tech, Nike HQ, Intel fab (Hillsboro), University of Oregon',
+   note:'Portland rent control and strict tenant laws limit investor returns. Bend is a growing remote-work STR market. Eugene (U of O) is a college town play.'},
+  {abbr:'PA',name:'Pennsylvania',price:'$265,000',rent:'$1,350',growth:'+3.5%',inv:'good',invL:'Good',
+   driver:'Philadelphia pharma/healthcare, Pittsburgh tech/healthcare, Penn State, Carnegie Mellon',
+   note:'Pittsburgh ranked top multifamily market. Philadelphia offers strong returns in certain neighborhoods. Affordable statewide. Penn State creates strong student market.'},
+  {abbr:'RI',name:'Rhode Island',price:'$425,000',rent:'$1,750',growth:'+4.2%',inv:'mod',invL:'Moderate',
+   driver:'Brown University, RISD, healthcare, Naval Station Newport, Boston overflow',
+   note:'Newport Naval Station creates military demand. Providence is affordable vs. Boston. Brown University student market. Small state = limited deal flow.'},
+  {abbr:'SC',name:'South Carolina',price:'$295,000',rent:'$1,350',growth:'+3.8%',inv:'hot',invL:'Hot',
+   driver:'Boeing manufacturing (Charleston), Volvo/BMW plants, Clemson/USC, military (Shaw AFB)',
+   note:'Charleston is booming — Boeing, port expansion, tech migration from Northeast. Greenville/Spartanburg growing on BMW/Volvo manufacturing jobs. No income tax advantage vs. NC.'},
+  {abbr:'SD',name:'South Dakota',price:'$265,000',rent:'$1,050',growth:'+2.6%',inv:'good',invL:'Good',
+   driver:'No state income tax, agriculture, tourism (Rushmore), financial services (credit card HQs)',
+   note:'No income tax is a major advantage. Sioux Falls is growing steadily. Affordable entry. Limited population growth. Good for stable cash flow plays.'},
+  {abbr:'TN',name:'Tennessee',price:'$375,000',rent:'$1,550',growth:'+2.5%',inv:'hot',invL:'Hot',
+   driver:'Nashville Amazon/Oracle, no income tax, healthcare (Vanderbilt/HCA), Memphis logistics, UT',
+   note:'No state income tax. Nashville is top national market. Memphis is Amazon/FedEx logistics hub with very affordable entry. Chattanooga growing tech hub.'},
+  {abbr:'TX',name:'Texas',price:'$335,000',rent:'$1,450',growth:'+1.8%',inv:'hot',invL:'Hot',
+   driver:'No income tax, San Antonio JBSA, Austin tech, College Station TAMU, Houston energy, Dallas finance',
+   note:'Huge state — market varies dramatically by city. No income tax advantage. College Station and San Antonio are ADJL primary targets for future acquisitions.'},
+  {abbr:'UT',name:'Utah',price:'$505,000',rent:'$1,700',growth:'+3.5%',inv:'good',invL:'Good',
+   driver:'Salt Lake tech corridor (Silicon Slopes), Brigham Young/Utah, tourism, healthcare',
+   note:'Silicon Slopes is one of fastest-growing tech hubs nationally. BYU and Utah State create strong student markets. Entry prices are high but appreciation strong.'},
+  {abbr:'VT',name:'Vermont',price:'$355,000',rent:'$1,450',growth:'+3.2%',inv:'mod',invL:'Moderate',
+   driver:'Remote work migration, UVM, tourism, Ben & Jerry country',
+   note:'Strong appreciation from remote workers. Burlington is the hub. Limited rental inventory and low population growth constrain scale. STR strong near ski resorts.'},
+  {abbr:'VA',name:'Virginia',price:'$385,000',rent:'$1,650',growth:'+3.0%',inv:'hot',invL:'Hot',
+   driver:'Pentagon/DOD, Amazon HQ2 (Arlington), JMU/UVA/VT, Naval Station Norfolk, CIA/NSA',
+   note:'Northern Virginia is one of the most stable markets in the US — government/defense/Amazon demand. Hampton Roads is #9 on ADJL defense list. Harrisonburg is #7 college market.'},
+  {abbr:'WA',name:'Washington',price:'$595,000',rent:'$1,900',growth:'+2.8%',inv:'mod',invL:'Moderate',
+   driver:'Amazon/Microsoft/Boeing, University of Washington, no income tax, ports',
+   note:'No income tax helps returns. Seattle/Bellevue is expensive. Tacoma and Spokane offer more affordable entry with strong demand. Amazon and Boeing create stable tenant base.'},
+  {abbr:'WV',name:'West Virginia',price:'$155,000',rent:'$820',growth:'+1.2%',inv:'mod',invL:'Moderate',
+   driver:'Coal/natural gas, federal spending, WVU, healthcare',
+   note:'Lowest median price in the US. Very high cash-on-cash potential but population declining. Morgantown (WVU) is a college market bright spot. Limited appreciation potential.'},
+  {abbr:'WI',name:'Wisconsin',price:'$265,000',rent:'$1,200',growth:'+2.5%',inv:'good',invL:'Good',
+   driver:'Healthcare (Epic Systems), University of Wisconsin, manufacturing, Green Bay/Milwaukee',
+   note:'Madison (UW) is a strong college market. Milwaukee offers affordable multifamily with solid yields. Epic Systems in Verona drives tech worker demand. Landlord-friendly.'},
+  {abbr:'WY',name:'Wyoming',price:'$315,000',rent:'$1,200',growth:'+2.0%',inv:'mod',invL:'Moderate',
+   driver:'Energy (oil, gas, coal), tourism (Yellowstone), agriculture, no income tax',
+   note:'No income tax. Casper and Cheyenne are the main markets. Energy sector volatility creates boom/bust cycles. Landlord-friendly. Limited population growth.'},
+];
+
+// ── CACHE + CURRENT ────────────────────────────────────────
+const synCache={};
+let curTop=null, curState=null, curClg=null, curDef=null;
+
+// ── RENDER TOP20 ───────────────────────────────────────────
+function buildTop20(){
+  const clg=TOP20.filter(m=>m.cat.includes('college'));
+  const def=TOP20.filter(m=>!m.cat.includes('college'));
+  document.getElementById('clg-rows').innerHTML=clg.map(m=>mrowHTML(m,'top')).join('');
+  document.getElementById('def-rows').innerHTML=def.map(m=>mrowHTML(m,'top')).join('');
+  document.getElementById('clg-only').innerHTML=clg.map(m=>mrowHTML(m,'clg')).join('');
+  document.getElementById('def-only').innerHTML=def.map(m=>mrowHTML(m,'def')).join('');
+}
+
+function mrowHTML(m,ctx){
+  return `<div class="mrow" id="mrow-${ctx}-${m.id}" data-id="${m.id}" data-ctx="${ctx}" data-cat="${m.cat}" onclick="selMkt('${m.id}','${ctx}')">
+    <div class="mr-rank"><span class="rn">${m.rank.split('-')[1]}</span></div>
+    <div class="mr-main">
+      <div class="rc">${m.city}${m.active?' <span style="font-size:.52rem;padding:1px 4px;background:rgba(26,107,60,.2);color:#4CAF7D;border:1px solid rgba(76,175,77,.28);font-family:Barlow,sans-serif;font-weight:700;letter-spacing:.09em;text-transform:uppercase">ACTIVE</span>':''}</div>
+      <div class="rd">${m.drv}</div>
+      <div class="rm">
+        <span class="ri"><strong>${m.median}</strong> median</span>
+        <span class="ri" style="color:rgba(201,168,76,.28)">·</span>
+        <span class="ri"><strong>${m.rent}</strong></span>
+        <span class="ri" style="color:rgba(201,168,76,.28)">·</span>
+        <span class="ri" style="color:${m.bc==='bu'?'#4CAF7D':m.bc==='bd'?'#FF8080':'var(--gold)'}">${m.growth}</span>
+      </div>
+    </div>
+    <div class="mr-right"><span class="rs">${m.score}</span><span class="rt ${m.tcls}">${m.tlbl}</span></div>
+  </div>`;
+}
+
+// ── RENDER STATES ──────────────────────────────────────────
+function buildStates(sorted){
+  const list=sorted||[...STATES].sort((a,b)=>a.name.localeCompare(b.name));
+  const cls={hot:'inv-hot',good:'inv-good',mod:'inv-mod',cau:'inv-caution'};
+  document.getElementById('stateList').innerHTML=list.map(s=>`
+    <div class="srow" id="srow-${s.abbr}" data-abbr="${s.abbr}" data-cat="state" onclick="selState('${s.abbr}')">
+      <span class="s-abbr">${s.abbr}</span>
+      <span class="s-name">${s.name}${s.active?' <span style="font-size:.52rem;padding:1px 4px;background:rgba(26,107,60,.2);color:#4CAF7D;border:1px solid rgba(76,175,77,.28);font-family:Barlow,sans-serif;font-weight:700;letter-spacing:.09em;text-transform:uppercase">ACTIVE DEAL</span>':''}</span>
+      <span class="s-price">${s.price}</span>
+      <span class="s-rent">${s.rent}/mo</span>
+      <span class="s-inv ${cls[s.inv]}">${s.invL}</span>
+    </div>`).join('');
+}
+
+function sortStates(mode,btn){
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  let arr=[...STATES];
+  if(mode==='alpha') arr.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(mode==='price_asc') arr.sort((a,b)=>parseInt(a.price.replace(/\D/g,''))-parseInt(b.price.replace(/\D/g,'')));
+  else if(mode==='price_desc') arr.sort((a,b)=>parseInt(b.price.replace(/\D/g,''))-parseInt(a.price.replace(/\D/g,'')));
+  else if(mode==='hot') arr.sort((a,b)=>({hot:3,good:2,mod:1,cau:0}[b.inv]-{hot:3,good:2,mod:1,cau:0}[a.inv]));
+  buildStates(arr);
+}
+
+// ── SELECT MARKET ──────────────────────────────────────────
+async function selMkt(id,ctx){
+  const m=TOP20.find(x=>x.id===id);
+  document.querySelectorAll(`.mrow[data-ctx="${ctx}"]`).forEach(r=>r.classList.remove('sel'));
+  const row=document.getElementById(`mrow-${ctx}-${id}`);
+  if(row){row.classList.add('sel');row.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  const emp=document.getElementById(`emp-${ctx}`);
+  const dc=document.getElementById(`dc-${ctx}`);
+  emp.style.display='none'; dc.style.display='block';
+  dc.classList.remove('vis'); void dc.offsetWidth; dc.classList.add('vis');
+  const fill=Math.round((m.score/10)*100);
+  dc.innerHTML=`
+    ${m.active?'<div class="act-pill">★ ADJL Active Deal</div>':''}
+    <div class="d-hdr">
+      <div class="d-rrow"><span class="d-rank">${m.rank}</span>
+        <span class="rt ${m.tcls}" style="border:1px solid">${m.tlbl}</span></div>
+      <div class="d-city">${m.city}</div>
+      <div class="d-drv">${m.drv}</div>
+      <div class="d-srow">
+        <div><span class="d-sbig">${m.score}</span><div class="d-slbl">ADJL Score / 10</div></div>
+        <div class="d-sbar"><div class="d-sfill" style="width:0%" id="sf-${id}"></div></div>
+      </div>
+    </div>
+    <div class="d-metrics">
+      <div class="d-mb"><span class="d-mv">${m.median}</span><span class="d-ml">Median Home Price</span></div>
+      <div class="d-mb"><span class="d-mv">${m.rent}</span><span class="d-ml">Avg Rent</span><span class="d-badge ${m.bc}">${m.growth}</span></div>
+      <div class="d-mb"><span class="d-mv">${m.vac}</span><span class="d-ml">Vacancy</span></div>
+      <div class="d-mb"><span class="d-mv">${m.perRoom}</span><span class="d-ml">Per-Room Rate</span></div>
+    </div>
+    <div class="syn-hdr"><span class="syn-lbl">AI Growth Synopsis</span>
+      <span class="ai-pill"><span class="ai-dot" id="adot-${id}"></span>Claude AI</span></div>
+    <div class="syn-box" id="sb-${id}">
+      <div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0">
+        <div class="ldots"><span></span><span></span><span></span></div>
+        <span style="font-size:.72rem;color:var(--muted)">Analyzing market…</span></div></div>
+    <div class="d-sec"><div class="d-st">Why This Market</div><p class="d-why">${m.why}</p></div>
+    <div class="d-sec"><div class="d-st">ADJL Strategy</div><div class="d-strat">${m.strat}</div></div>
+    <div class="d-sec"><div class="d-st">Key Risk</div><div class="d-risk">${m.risk}</div></div>`;
+  setTimeout(()=>{const b=document.getElementById('sf-'+id);if(b)b.style.width=fill+'%';},100);
+  await loadSyn(m.city,m.drv,m.median,m.rent,m.growth,'mkt',id,`sb-${id}`,`adot-${id}`);
+}
+
+async function selState(abbr){
+  const s=STATES.find(x=>x.abbr===abbr);
+  document.querySelectorAll('.srow').forEach(r=>r.classList.remove('sel'));
+  const row=document.getElementById('srow-'+abbr);
+  if(row){row.classList.add('sel');row.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  const emp=document.getElementById('emp-state');
+  const dc=document.getElementById('dc-state');
+  emp.style.display='none'; dc.style.display='block';
+  dc.classList.remove('vis'); void dc.offsetWidth; dc.classList.add('vis');
+  const invColor={hot:'#4CAF7D',good:'var(--gold-l)',mod:'var(--muted)',cau:'#FF8080'}[s.inv];
+  const invBg={hot:'rgba(26,107,60,.12)',good:'rgba(201,168,76,.08)',mod:'rgba(27,43,75,.3)',cau:'rgba(139,26,26,.1)'}[s.inv];
+  dc.innerHTML=`
+    <div class="d-hdr">
+      <div class="d-rrow">
+        <span style="font-family:Cormorant Garamond,serif;font-size:2.2rem;font-weight:700;color:var(--gold);line-height:1">${s.abbr}</span>
+        <span style="padding:.18rem .5rem;border:1px solid;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${invColor};background:${invBg};border-color:${invColor}30">${s.invL} Market</span>
+        ${s.active?'<span style="padding:.18rem .5rem;background:rgba(26,107,60,.15);border:1px solid rgba(76,175,77,.3);font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#4CAF7D">★ ADJL ACTIVE DEAL — Atlanta</span>':''}
+      </div>
+      <div class="d-city">${s.name}</div>
+      <div class="d-drv">${s.driver}</div>
+    </div>
+    <div class="d-metrics">
+      <div class="d-mb"><span class="d-mv">${s.price}</span><span class="d-ml">Median Home Price</span></div>
+      <div class="d-mb"><span class="d-mv">${s.rent}/mo</span><span class="d-ml">Avg Rent</span><span class="d-badge bu">${s.growth}</span></div>
+    </div>
+    <div class="syn-hdr"><span class="syn-lbl">AI Market Analysis</span>
+      <span class="ai-pill"><span class="ai-dot" id="adot-${abbr}"></span>Claude AI</span></div>
+    <div class="syn-box" id="sb-${abbr}">
+      <div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0">
+        <div class="ldots"><span></span><span></span><span></span></div>
+        <span style="font-size:.72rem;color:var(--muted)">Analyzing ${s.name}…</span></div></div>
+    <div class="d-sec"><div class="d-st">Market Overview</div><p class="d-why">${s.note}</p></div>`;
+  await loadSyn(s.name,'(statewide)',s.price,s.rent,s.growth,'state',abbr,`sb-${abbr}`,`adot-${abbr}`);
+}
+
+// ── AI SYNOPSIS ────────────────────────────────────────────
+async function loadSyn(city,driver,price,rent,growth,type,cacheKey,boxId,dotId){
+  const box=document.getElementById(boxId);
+  if(!box) return;
+  if(synCache[cacheKey]){
+    box.innerHTML=`<p class="syn-text">${synCache[cacheKey]}</p>`;
+    const d=document.getElementById(dotId);
+    if(d){d.style.animation='none';d.style.opacity='1';d.style.background='#4CAF7D';}
+    return;
+  }
+  const isState=type==='state';
+  const prompt=isState
+    ?`You are a real estate investment analyst for ADJL Capital, a private equity firm. Write a sharp 3-paragraph investment analysis for ${city} as a state-level real estate market.
+
+Paragraph 1 — Why It's Worth Watching: Key economic drivers, job growth, population trends, and what's making this state interesting or challenging for investors in 2026. Specific data points.
+
+Paragraph 2 — Home Price & Rental Analysis: Current median home price of ${price}, how it compares to the national average of $355,000, recent price trends, and average rent of ${rent}/mo. What cap rates look like. Which cities within the state offer the best opportunities.
+
+Paragraph 3 — ADJL Investment Outlook: Whether this state fits ADJL Capital's strategy (multifamily, per-room student leasing near colleges, or defense/military workforce housing), what type of properties to target, and the main risks to watch.
+
+Keep it sharp, specific, and data-informed. Around 200 words. Plain text, no bullets, no markdown.`
+    :`You are a real estate investment analyst for ADJL Capital, a private equity firm. Write a sharp 3-paragraph growth synopsis for ${city} (${driver}).
+
+Paragraph 1 — Why It's Booming: The specific economic catalysts, job growth, population trends making this market boom in 2026. Specific companies, numbers, and recent developments.
+
+Paragraph 2 — Home Price Analysis: Current median price of ${price}. How it compares to national average ($355,000). Recent price trend (${growth}). Average rent of ${rent}. What ADJL Capital can realistically acquire at this price point for a multifamily investment.
+
+Paragraph 3 — 3–5 Year Outlook: Forward-looking assessment of rent growth, appreciation potential, and why this market fits ADJL Capital's investment strategy of multifamily acquisition with per-room student leasing or military/defense workforce housing.
+
+Keep it sharp, data-informed, written for sophisticated investors. Around 200 words. Plain text only, no bullets.`;
+
+  const showFallback=()=>{
+    const b=document.getElementById(boxId);
+    if(b) b.innerHTML='<p class="syn-text" style="opacity:.45;font-style:italic">AI synopsis loads when hosted externally (Netlify, Tiiny.host). All market data above is live research.</p>';
+    const d=document.getElementById(dotId);
+    if(d){d.style.animation='none';d.style.opacity='.4';}
+  };
+  try{
+    const controller=new AbortController();
+    const tid=setTimeout(()=>controller.abort(),12000);
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',signal:controller.signal,
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+        messages:[{role:'user',content:prompt}]})
+    });
+    clearTimeout(tid);
+    if(!res.ok){showFallback();return;}
+    const data=await res.json();
+    const text=(data&&data.content&&data.content[0]&&data.content[0].text)||'';
+    if(!text){showFallback();return;}
+    synCache[cacheKey]=text;
+    const b2=document.getElementById(boxId);
+    if(b2){
+      const html=text.split('\n\n').filter(Boolean).map(p=>'<p class="syn-text" style="margin-bottom:.55rem">'+p.replace(/\n/g,' ')+'</p>').join('');
+      b2.innerHTML=html;
+      const d=document.getElementById(dotId);
+      if(d){d.style.animation='none';d.style.opacity='1';d.style.background='#4CAF7D';}
+    }
+  }catch(e){showFallback();}
+}
+
+// ── COMPARE TABLE ──────────────────────────────────────────
+function buildCompare(){
+  const t20=TOP20.map(m=>`<tr onclick="selMkt('${m.id}','top');setV('top20')">
+    <td>${m.rank}</td><td class="cc">${m.city}</td>
+    <td><span class="rt ${m.tcls}" style="border:1px solid">${m.tlbl}</span></td>
+    <td class="pc">${m.median}</td><td>${m.rent}</td>
+    <td style="color:${m.bc==='bu'?'#4CAF7D':'var(--gold)'}">${m.growth}</td>
+    <td class="sc2">${m.score}</td></tr>`).join('');
+  const cls={hot:'tc',good:'tl',mod:'ts',cau:'td'};
+  const s50=STATES.map(s=>`<tr onclick="selState('${s.abbr}');setV('all50')">
+    <td>${s.abbr}</td><td class="cc">${s.name}</td>
+    <td><span class="rt ${cls[s.inv]}" style="border:1px solid">${s.invL}</span></td>
+    <td class="pc">${s.price}</td><td>${s.rent}/mo</td>
+    <td style="color:#4CAF7D">${s.growth}</td>
+    <td class="sc2">—</td></tr>`).join('');
+  document.getElementById('cmpBody').innerHTML=t20+'<tr><td colspan="7" style="padding:.5rem;background:rgba(201,168,76,.05);color:var(--gold);font-size:.65rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;text-align:center">— ALL 50 STATES —</td></tr>'+s50;
+}
+
+// ── FILTER & SEARCH ────────────────────────────────────────
+function filt(type,btn){
+  document.querySelectorAll('#vTop20 .fb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.mrow[data-ctx="top"]').forEach(r=>{
+    const cats=r.dataset.cat||'';
+    r.classList.toggle('hidden',type!=='all'&&!cats.includes(type));
+  });
+}
+function srch(q,ctx){
+  q=q.toLowerCase().trim();
+  if(ctx==='top'){
+    document.querySelectorAll('.mrow[data-ctx="top"]').forEach(r=>{
+      const id=r.dataset.id;
+      const m=TOP20.find(x=>x.id===id);
+      const txt=(m.city+' '+m.drv+' '+m.cat).toLowerCase();
+      r.classList.toggle('hidden',q.length>0&&!txt.includes(q));
+    });
+  } else {
+    document.querySelectorAll('.srow').forEach(r=>{
+      const abbr=r.dataset.abbr;
+      const s=STATES.find(x=>x.abbr===abbr);
+      const txt=(s.name+' '+s.abbr+' '+s.driver).toLowerCase();
+      r.classList.toggle('hidden',q.length>0&&!txt.includes(q));
+    });
+  }
+}
+
+// ── VIEW SWITCHING ─────────────────────────────────────────
+function setV(v){
+  const views=['top20','all50','college','defense','compare','analyze'];
+  const ids=['vTop20','vAll50','vCollege','vDefense','vCompare','vAnalyze'];
+  views.forEach((vn,i)=>{
+    document.getElementById(ids[i]).classList.toggle('hidden',vn!==v);
+  });
+  document.querySelectorAll('.tb').forEach((b,i)=>
+    b.classList.toggle('active',['top20','all50','college','defense','compare','analyze'][i]===v));
+}
+
+function prefillAnalyzer(city, medianPrice){
+  setV('analyze');
+  document.getElementById('azCity').value = city;
+  const num = parseInt(medianPrice.replace(/[^0-9]/g,''));
+  if(num) document.getElementById('azPrice').value = num;
+}
+
+// ── FETCH URL ANALYZER ────────────────────────────────────
+async function fetchAndAnalyze(){
+  const url = document.getElementById('azUrl').value.trim();
+  if(!url){ alert('Please paste a Zillow or Redfin URL first.'); return; }
+  document.getElementById('azLoading').style.display='block';
+  document.getElementById('azResults').classList.add('hidden');
+
+  const prompt = `You are a real estate data extractor. A user has provided this property listing URL: ${url}
+
+Based on the URL and any information you can infer from it (address, city, state, property type), provide your best estimate of the following as a JSON object. If you cannot determine a value, use null.
+
+Return ONLY valid JSON, no other text:
+{
+  "address": "full address",
+  "city": "City, ST",
+  "price": 445000,
+  "units": 4,
+  "beds_per_unit": 2,
+  "baths_per_unit": 2,
+  "sqft_total": 3600,
+  "year_built": 1980,
+  "est_rent_per_unit": 1300,
+  "property_type": "fourplex",
+  "notes": "any notable details from the URL"
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,
+        messages:[{role:'user',content:prompt}]})
+    });
+    const data = await res.json();
+    const raw = data?.content?.[0]?.text || '{}';
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const prop = JSON.parse(clean);
+    // Pre-fill manual fields with extracted data
+    if(prop.city) document.getElementById('azCity').value = prop.city;
+    if(prop.price) document.getElementById('azPrice').value = prop.price;
+    if(prop.units) document.getElementById('azUnits').value = prop.units;
+    if(prop.beds_per_unit) document.getElementById('azBeds').value = prop.beds_per_unit;
+    if(prop.est_rent_per_unit) document.getElementById('azRent').value = prop.est_rent_per_unit;
+    if(prop.year_built) document.getElementById('azYear').value = prop.year_built;
+    if(prop.sqft_total) document.getElementById('azSqft').value = prop.sqft_total;
+    runManualAnalysis(prop.address || url);
+  } catch(e) {
+    document.getElementById('azLoading').style.display='none';
+    alert('Could not parse URL automatically. Please fill in the property details manually below.');
+  }
+}
+
+// ── CORE ANALYSIS ENGINE ──────────────────────────────────
+function calcScenario(price, units, bedsPerUnit, rentPerUnit, strategy, rate, label, downPct, numInvestors){
+  const down = price * downPct;
+  const mortgage = price - down;
+  const rm = (rate/100)/12;
+  const n = 25*12;
+  const monthlyPmt = mortgage * (rm*Math.pow(1+rm,n)) / (Math.pow(1+rm,n)-1);
+  const annualDebt = monthlyPmt * 12;
+  const effectiveRent = strategy === 'room' ? rentPerUnit * bedsPerUnit * units : rentPerUnit * units;
+  const grossAnnual = effectiveRent * 12;
+  const egi = grossAnnual * 0.92; // 8% vacancy
+  const opex = egi * 0.52;
+  const noi = egi - opex;
+  const dscr = annualDebt > 0 ? noi / annualDebt : 999;
+  const capRate = (noi / price) * 100;
+  const onePctRule = (effectiveRent / price) * 100;
+  const mgmtFee = numInvestors > 1 ? down * 0.015 : 0;
+  const netCF = noi - annualDebt - mgmtFee;
+  const perInvCF = numInvestors > 0 ? netCF / numInvestors : netCF;
+  // Exit yr 4
+  const exitPrice = price * 1.12;
+  let remBal = mortgage;
+  for(let i=0;i<48;i++){const int=remBal*rm; remBal-=(monthlyPmt-int);}
+  const netExit = exitPrice - remBal;
+  const profitPool = netExit - down;
+  const carry = numInvestors > 1 ? profitPool * 0.16 : 0;
+  const invPool = profitPool - carry;
+  const perInvExit = numInvestors > 0 ? invPool / numInvestors : invPool;
+  const totalBack = (perInvCF * 4) + (down/numInvestors||down) + perInvExit;
+  const invested = numInvestors > 1 ? (down/numInvestors) * 1.03 : down;
+  // IRR
+  const cfs = [-invested, perInvCF, perInvCF, perInvCF, perInvCF + (down/numInvestors||down) + perInvExit];
+  let irr = 0.15;
+  for(let i=0;i<2000;i++){
+    const f=cfs.reduce((s,c,j)=>s+c/Math.pow(1+irr,j),0);
+    const df=cfs.reduce((s,c,j)=>s-j*c/Math.pow(1+irr,j+1),0);
+    if(Math.abs(df)<1e-10) break;
+    irr=Math.max(irr-f/df,-0.99);
+  }
+  const moic = totalBack / invested;
+  return {down,annualDebt,noi,dscr,capRate,onePctRule,netCF,perInvCF,
+    exitPrice,perInvExit,totalBack,invested,irr:irr*100,moic,monthlyPmt,
+    grossAnnual,effectiveRent,mgmtFee,numInvestors,label};
+}
+
+function verdict(irr, dscr, onePct){
+  if(irr >= 18 && dscr >= 1.25 && onePct >= 1.0) return {cls:'verdict-buy', label:'STRONG BUY', emoji:'✓'};
+  if(irr >= 12 && dscr >= 1.10) return {cls:'verdict-maybe', label:'CONDITIONAL', emoji:'~'};
+  return {cls:'verdict-pass', label:'PASS', emoji:'✗'};
+}
+
+function metricClass(val, good, warn){
+  return val >= good ? 'good' : val >= warn ? 'warn' : 'bad';
+}
+
+async function runManualAnalysis(sourceLabel){
+  const city = document.getElementById('azCity').value || 'Unknown Market';
+  const price = parseFloat(document.getElementById('azPrice').value) || 0;
+  const units = parseInt(document.getElementById('azUnits').value) || 1;
+  const beds = parseInt(document.getElementById('azBeds').value) || 2;
+  const rent = parseFloat(document.getElementById('azRent').value) || 0;
+  const strategy = document.getElementById('azStrategy').value;
+  const year = parseInt(document.getElementById('azYear').value) || 1990;
+  const sqft = parseInt(document.getElementById('azSqft').value) || 0;
+  const rate = parseFloat(document.getElementById('azRate').value) || 6.0;
+
+  if(!price || !rent){ alert('Please enter at least a purchase price and monthly rent.'); return; }
+  document.getElementById('azLoading').style.display='block';
+  document.getElementById('azResults').classList.add('hidden');
+
+  // Run all 3 scenarios
+  const adjl  = calcScenario(price,units,beds,rent,strategy,rate,'ADJL Owned',0.20,3);
+  const deal5  = calcScenario(price,units,beds,rent,strategy,rate,'Investor Deal',0.20,5);
+  const solo   = calcScenario(price,units,beds,rent,strategy,rate,'Single Investor',0.20,1);
+
+  const v_adjl  = verdict(adjl.irr, adjl.dscr, adjl.onePctRule);
+  const v_deal5 = verdict(deal5.irr, deal5.dscr, deal5.onePctRule);
+  const v_solo  = verdict(solo.irr, solo.dscr, solo.onePctRule);
+
+  const fmt = (n,d=0) => isFinite(n) ? '$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}) : 'N/A';
+  const fmtP = (n,d=1) => isFinite(n) ? n.toFixed(d)+'%' : 'N/A';
+
+  function colHTML(s, v){
+    const isNeg = s.perInvCF < 0;
+    return `<div class="az-col">
+      <div class="az-col-hdr">
+        <div class="az-col-name">\${s.label}</div>
+        <div class="az-col-sub">\${s.numInvestors===3?'Daniel · Andrew · James':s.numInvestors===5?'5 investors × '+fmt(s.down/5)+' ea':'100% ownership'}</div>
+      </div>
+      <div class="az-col-body">
+        <div class="az-metric"><span class="az-m-label">Down Payment</span><span class="az-m-val">\${fmt(s.down)}</span></div>
+        <div class="az-metric"><span class="az-m-label">Mortgage / mo</span><span class="az-m-val">\${fmt(s.monthlyPmt)}</span></div>
+        <div class="az-metric"><span class="az-m-label">Gross Revenue / yr</span><span class="az-m-val">\${fmt(s.grossAnnual)}</span></div>
+        <div class="az-metric"><span class="az-m-label">NOI / yr</span><span class="az-m-val">\${fmt(s.noi)}</span></div>
+        <div class="az-metric"><span class="az-m-label">DSCR</span><span class="az-m-val \${metricClass(s.dscr,1.25,1.1)}">\${s.dscr.toFixed(2)}x</span></div>
+        <div class="az-metric"><span class="az-m-label">Cap Rate</span><span class="az-m-val \${metricClass(s.capRate,7,5)}">\${fmtP(s.capRate)}</span></div>
+        <div class="az-metric"><span class="az-m-label">1% Rule</span><span class="az-m-val \${metricClass(s.onePctRule,1.0,0.8)}">\${fmtP(s.onePctRule)}</span></div>
+        <div class="az-metric"><span class="az-m-label">Annual Net CF</span><span class="az-m-val \${isNeg?'bad':'good'}">\${isNeg?'-':''}\${fmt(Math.abs(s.perInvCF))}</span></div>
+        <div class="az-metric"><span class="az-m-label">Exit Profit (Yr 4)</span><span class="az-m-val good">\${fmt(s.perInvExit)}</span></div>
+        <div class="az-metric"><span class="az-m-label">True IRR</span><span class="az-m-val \${metricClass(s.irr,18,12)}">\${fmtP(s.irr)}</span></div>
+        <div class="az-metric"><span class="az-m-label">Money Multiple</span><span class="az-m-val \${metricClass(s.moic,1.8,1.4)}">\${s.moic.toFixed(2)}x</span></div>
+      </div>
+    </div>`;
+  }
+
+  // Get AI verdict
+  let aiText = '';
+  const aiPrompt = `You are a real estate investment analyst for ADJL Capital. Analyze this property:
+
+Location: \${city}
+Price: \${fmt(price)}
+Units: \${units} units, \${beds} beds each
+Rent: \${strategy==='room'?'$'+rent+'/bedroom (per-room strategy)':'$'+rent+'/unit (whole unit)'}
+Year Built: \${year}
+Mortgage Rate: \${rate}%
+
+Key metrics:
+- NOI: \${fmt(adjl.noi)}/yr
+- DSCR: \${adjl.dscr.toFixed(2)}x
+- Cap Rate: \${fmtP(adjl.capRate)}
+- 1% Rule: \${fmtP(adjl.onePctRule)}
+- IRR (ADJL owned): \${fmtP(adjl.irr)}
+- IRR (single investor): \${fmtP(solo.irr)}
+
+Write 2–3 sharp paragraphs: (1) whether this is a good investment and why, (2) the biggest risk, (3) one specific recommendation to improve the deal. Be direct and honest — if it's a bad deal, say so clearly. Plain text, no bullets. Max 180 words.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,
+        messages:[{role:'user',content:aiPrompt}]})
+    });
+    const data = await res.json();
+    aiText = data?.content?.[0]?.text || '';
+  } catch(e){ aiText = ''; }
+
+  document.getElementById('azLoading').style.display='none';
+  const results = document.getElementById('azResults');
+  results.classList.remove('hidden');
+
+  const stratLabel = strategy==='room'?`\${beds} beds × \${units} units × $\${rent}/bed = \${fmt(adjl.effectiveRent)}/mo gross`:`\${units} units × $\${rent}/unit = \${fmt(adjl.effectiveRent)}/mo gross`;
+
+  const fmtInv = deal5.down/5;
+  const summaryHTML =
+    '<div style="margin-bottom:1.2rem;padding:.8rem 1rem;background:rgba(27,43,75,.5);border:1px solid var(--border)">' +
+    '<div style="font-size:.7rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);margin-bottom:.3rem">Property Summary</div>' +
+    '<div style="font-size:.88rem;color:var(--cream)">' + (sourceLabel||city) + ' &middot; ' + fmt(price) + ' &middot; ' + units + ' units</div>' +
+    '<div style="font-size:.78rem;color:var(--muted);margin-top:.2rem">' + stratLabel + '</div>' +
+    '</div>';
+
+  const verdictRowHTML =
+    '<div class="az-verdict-row">' +
+    '<div class="az-verdict-cell"><div class="az-v-title">ADJL Owned</div>' +
+    '<div class="az-v-score ' + v_adjl.cls + '">' + v_adjl.emoji + '</div>' +
+    '<div class="az-v-label ' + v_adjl.cls + '">' + v_adjl.label + '</div>' +
+    '<div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">IRR ' + fmtP(adjl.irr) + ' &middot; ' + adjl.dscr.toFixed(2) + 'x DSCR</div></div>' +
+    '<div class="az-verdict-cell"><div class="az-v-title">Investor Deal (5&times;' + fmt(fmtInv) + ')</div>' +
+    '<div class="az-v-score ' + v_deal5.cls + '">' + v_deal5.emoji + '</div>' +
+    '<div class="az-v-label ' + v_deal5.cls + '">' + v_deal5.label + '</div>' +
+    '<div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">IRR ' + fmtP(deal5.irr) + ' &middot; ' + deal5.dscr.toFixed(2) + 'x DSCR</div></div>' +
+    '<div class="az-verdict-cell"><div class="az-v-title">Single Investor</div>' +
+    '<div class="az-v-score ' + v_solo.cls + '">' + v_solo.emoji + '</div>' +
+    '<div class="az-v-label ' + v_solo.cls + '">' + v_solo.label + '</div>' +
+    '<div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">IRR ' + fmtP(solo.irr) + ' &middot; ' + solo.dscr.toFixed(2) + 'x DSCR</div></div>' +
+    '</div>';
+
+  const colsHTML = '<div class="az-cols">' + colHTML(adjl) + colHTML(deal5) + colHTML(solo) + '</div>';
+
+  const aiHTML = aiText
+    ? '<div class="az-ai-box"><div class="az-ai-label"><span style="width:6px;height:6px;border-radius:50%;background:#4CAF7D;display:inline-block;margin-right:.3rem"></span>Claude AI Investment Analysis</div>' +
+      '<div class="az-ai-text">' + aiText.split('\n\n').filter(Boolean).map(function(p){return '<p style="margin-bottom:.55rem">'+p+'</p>';}).join('') + '</div></div>'
+    : '';
+
+  const warnHTML = '<div class="az-warn-box">Conservative assumptions: 8% vacancy &middot; 52% expense ratio &middot; 20% down &middot; 12% appreciation over 4 years &middot; 6% mortgage. Actual results vary. Not financial advice.</div>';
+
+  results.innerHTML = summaryHTML + verdictRowHTML + colsHTML + aiHTML + warnHTML;
+}
+
+const API_KEY = 'YOUR_API_KEY_HERE';
+
+
+// ── INIT ───────────────────────────────────────────────────
+buildTop20();
+buildStates();
+buildCompare();
+</script>
+</body>
+</html>
