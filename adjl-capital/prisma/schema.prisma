@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  deals     Deal[]
+  createdAt DateTime @default(now())
+}
+
+model Deal {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  address      String
+  sourceUrl    String?
+  city         String
+  price        Float
+  units        Int
+  bedsPerUnit  Int
+  rentPerUnit  Float
+  strategy     String
+  yearBuilt    Int?
+  sqft         Int?
+  mortgageRate Float
+  results      Json
+  aiAnalysis   String?
+  verdict      String
+  irr          Float
+  status       String   @default("researching")
+  notes        String?
+  savedBy      String
+  savedAt      DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
