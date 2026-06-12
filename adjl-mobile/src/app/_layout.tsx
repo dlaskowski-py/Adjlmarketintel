@@ -23,6 +23,7 @@ import {
 
 import { Colors } from "@/constants/adjl";
 import { AuthProvider, useAuth } from "@/context/auth";
+import { SettingsProvider, useSettings } from "@/context/settings";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -43,18 +44,21 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <RootNavigator fontsLoaded={fontsLoaded} />
-      </AuthProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <RootNavigator fontsLoaded={fontsLoaded} />
+        </AuthProvider>
+      </SettingsProvider>
     </SafeAreaProvider>
   );
 }
 
 function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
   const { user, loading } = useAuth();
+  const { loaded: settingsLoaded } = useSettings();
   const segments = useSegments();
   const router = useRouter();
-  const ready = fontsLoaded && !loading;
+  const ready = fontsLoaded && !loading && settingsLoaded;
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
@@ -81,6 +85,10 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
     >
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="market/[id]" />
+      <Stack.Screen name="state/[abbr]" />
+      <Stack.Screen name="pipeline" />
+      <Stack.Screen name="settings" options={{ presentation: "modal" }} />
     </Stack>
   );
 }

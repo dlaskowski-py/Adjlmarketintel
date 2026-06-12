@@ -1,6 +1,11 @@
+import { useMemo, useState } from "react";
+import { View, TextInput, Pressable, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
 import { TabScaffold } from "@/components/TabScaffold";
-import { Hero, StatBar, SectionHeader, MarketRowCard, PreviewNote, type MarketCard } from "@/components/ui";
-import { Colors } from "@/constants/adjl";
+import { AppText } from "@/components/AppText";
+import { Hero, StatBar, SectionHeader, MarketRow } from "@/components/ui";
+import { Colors, Fonts, Spacing } from "@/constants/adjl";
+import { TOP20 } from "@/data/markets";
 
 const STATS = [
   { value: "50", label: "States Covered" },
@@ -11,81 +16,112 @@ const STATS = [
   { value: "2026", label: "Live Data" },
 ];
 
-const COLLEGE: MarketCard[] = [
-  {
-    rank: "01",
-    city: "College Station, TX",
-    driver: "Texas A&M · 74,000+ students",
-    median: "$395,000",
-    rent: "$1,253/mo",
-    growth: "+0.2%",
-    growthColor: Colors.greenBright,
-    score: 9.5,
-    tag: "College",
-    tagColor: Colors.greenBright,
-  },
-  {
-    rank: "02",
-    city: "Tuscaloosa, AL",
-    driver: "University of Alabama · 38,000+ students",
-    median: "$280,000",
-    rent: "$1,299/mo",
-    growth: "+1.9%",
-    growthColor: Colors.greenBright,
-    score: 9.2,
-    tag: "College",
-    tagColor: Colors.greenBright,
-  },
-];
-
-const DEFENSE: MarketCard[] = [
-  {
-    rank: "01",
-    city: "San Antonio, TX",
-    driver: "JBSA — 4 Installations · 80,000+ Personnel",
-    median: "$284,000",
-    rent: "$1,295/mo",
-    growth: "+3.1%",
-    growthColor: Colors.greenBright,
-    score: 9.3,
-    tag: "Military",
-    tagColor: Colors.blue,
-  },
-  {
-    rank: "03",
-    city: "Augusta, GA",
-    driver: "US Army Cyber Command · $2B Data Center",
-    median: "$207,000",
-    rent: "$1,100–1,400",
-    growth: "+1.3%",
-    growthColor: Colors.greenBright,
-    score: 8.7,
-    tag: "Defense/Cyber",
-    tagColor: Colors.redBright,
-  },
+const FILTERS = [
+  { key: "all", label: "All" },
+  { key: "college", label: "College" },
+  { key: "military", label: "Military" },
+  { key: "tech", label: "Tech" },
+  { key: "defense", label: "Defense" },
 ];
 
 export default function Top20Screen() {
+  const router = useRouter();
+  const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    return TOP20.filter((m) => {
+      if (filter !== "all" && !m.cat.includes(filter)) return false;
+      if (q && !`${m.city} ${m.drv} ${m.cat}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [filter, query]);
+
+  const college = filtered.filter((m) => m.cat.includes("college"));
+  const defense = filtered.filter((m) => !m.cat.includes("college"));
+
   return (
     <TabScaffold>
       <Hero
         title="70 Markets."
-        accent="Click any to explore."
+        accent="Tap any to explore."
         subtitle="All 50 states + 20 curated markets. Tap any row for an AI growth synopsis, pricing, and ADJL strategy. June 2026."
       />
       <StatBar stats={STATS} />
 
-      <SectionHeader title="College Town Markets" count="10 Markets" />
-      {COLLEGE.map((m) => (
-        <MarketRowCard key={m.city} m={m} />
-      ))}
+      {/* Filter chips + search */}
+      <View style={styles.fbar}>
+        {FILTERS.map((f) => (
+          <Pressable
+            key={f.key}
+            onPress={() => setFilter(f.key)}
+            style={[styles.chip, filter === f.key && styles.chipActive]}
+          >
+            <AppText
+              variant="bodySemibold"
+              style={[styles.chipText, filter === f.key && { color: Colors.gold }]}
+            >
+              {f.label}
+            </AppText>
+          </Pressable>
+        ))}
+      </View>
+      <TextInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search markets…"
+        placeholderTextColor="rgba(248,245,239,0.25)"
+        style={styles.search}
+      />
 
-      <SectionHeader title="Defense & Tech Boom Markets" count="10 Markets" />
-      {DEFENSE.map((m) => (
-        <MarketRowCard key={m.city} m={m} />
-      ))}
+      {college.length > 0 && (
+        <>
+          <SectionHeader title="College Town Markets" count={`${college.length} Markets`} />
+          {college.map((m) => (
+            <MarketRow key={m.id} market={m} onPress={() => router.push(`/market/${m.id}`)} />
+          ))}
+        </>
+      )}
 
-      <PreviewNote text="Tab navigation and the ADJL design system are wired up. Next step: load the full 20-market dataset, the detail panel, and the AI synopsis." />
+      {defense.length > 0 && (
+        <>
+          <SectionHeader title="Defense & Tech Boom Markets" count={`${defense.length} Markets`} />
+          {defense.map((m) => (
+            <MarketRow key={m.id} market={m} onPress={() => router.push(`/market/${m.id}`)} />
+          ))}
+        </>
+      )}
     </TabScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  fbar: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
+    marginHorizontal: Spacing.xl,
+    marginTop: Spacing.lg,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: "rgba(201,168,76,0.2)",
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+  },
+  chipActive: { borderColor: Colors.gold, backgroundColor: "rgba(201,168,76,0.07)" },
+  chipText: { fontSize: 10, letterSpacing: 1, textTransform: "uppercase", color: Colors.muted },
+  search: {
+    marginHorizontal: Spacing.xl,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "rgba(201,168,76,0.18)",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    color: Colors.cream,
+    fontFamily: Fonts.body,
+    fontSize: 14,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+  },
+});

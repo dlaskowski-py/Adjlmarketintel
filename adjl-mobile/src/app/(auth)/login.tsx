@@ -119,7 +119,8 @@ export default function LoginScreen() {
           </Pressable>
 
           <AppText variant="body" style={styles.hint}>
-            Partners: daniel@ · andrew@ · james@adjlcapital.com
+            Partners sign in with their @adjlcapital.com email.{"\n"}Investors: any email for guest
+            access.
           </AppText>
         </View>
       </KeyboardAvoidingView>

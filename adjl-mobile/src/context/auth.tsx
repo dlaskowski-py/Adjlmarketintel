@@ -44,18 +44,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(email: string, password: string) {
     const normalized = email.trim().toLowerCase();
-    const partner = PARTNERS.find((p) => p.email === normalized);
-    if (!partner) {
-      return { ok: false, error: "No ADJL partner account for that email." };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+      return { ok: false, error: "Enter a valid email address." };
     }
-    // Demo auth — any non-empty password is accepted on device.
-    // (Production auth runs server-side; see the web app.)
     if (!password.trim()) {
       return { ok: false, error: "Enter your password." };
     }
-    setUser(partner);
+    // Partners get their named accounts; anyone else (e.g. investors using
+    // the demo) signs in as a guest. Auth is on-device only — there is no
+    // backend and no sensitive data behind this gate.
+    const partner = PARTNERS.find((p) => p.email === normalized);
+    const local = normalized.split("@")[0];
+    const guestName = local.charAt(0).toUpperCase() + local.slice(1);
+    const account: Partner = partner ?? { email: normalized, name: `${guestName} (Guest)` };
+    setUser(account);
     try {
-      await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(partner));
+      await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(account));
     } catch {
       // non-fatal: session just won't persist across launches
     }
