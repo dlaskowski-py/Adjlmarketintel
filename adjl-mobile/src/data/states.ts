@@ -1,7 +1,7 @@
 // ── ALL 50 STATES ──────────────────────────────────────────
 // Data: median price from FreeFinCalc 2026, avg rent from PropertyCEO/WorldPopReview 2026.
 // Investment rating: HOT / GOOD / MODERATE / CAUTION.
-// Extracted verbatim from the ADJL Market Intelligence HTML MVP. DO NOT change.
+// Curated state-level research data set.
 
 export interface State {
   abbr: string;
@@ -126,7 +126,7 @@ export const STATES: State[] = [
     invL: "Hot",
     active: true,
     driver: "Atlanta tech hub, film industry, ports (Savannah), military (Fort Eisenhower), UGA/Georgia Tech",
-    note: "★ ADJL ACTIVE DEAL — Atlanta. Atlanta appreciation strong. Augusta is best-kept secret (Cyber Command + $2B data center). Athens growing fast. Savannah port boom.",
+    note: "Atlanta appreciation strong. Augusta is best-kept secret (Cyber Command + $2B data center). Athens growing fast. Savannah port boom.",
   },
   {
     abbr: "HI",
@@ -137,7 +137,7 @@ export const STATES: State[] = [
     inv: "cau",
     invL: "Caution",
     driver: "Tourism, military (Pearl Harbor), agriculture, remote work migration",
-    note: "Highest median prices in the US. STR regulations very strict. Cash flow nearly impossible. Appreciation play only — not suitable for ADJL strategy.",
+    note: "Highest median prices in the US. STR regulations very strict. Cash flow nearly impossible. Appreciation play only — not suitable for a cash-flow strategy.",
   },
   {
     abbr: "ID",
@@ -346,7 +346,7 @@ export const STATES: State[] = [
     inv: "mod",
     invL: "Moderate",
     driver: "NYC overflow, pharma (J&J, Merck), finance, Princeton/Rutgers, port logistics",
-    note: "ADJL Capital's home state. Strong rents but high property taxes (2.5%+) and landlord regulations. NYC proximity drives consistent demand. Entry prices are high.",
+    note: "Strong rents but high property taxes (2.5%+) and landlord regulations. NYC proximity drives consistent demand. Entry prices are high.",
   },
   {
     abbr: "NM",
@@ -489,7 +489,7 @@ export const STATES: State[] = [
     inv: "hot",
     invL: "Hot",
     driver: "No income tax, San Antonio JBSA, Austin tech, College Station TAMU, Houston energy, Dallas finance",
-    note: "Huge state — market varies dramatically by city. No income tax advantage. College Station and San Antonio are ADJL primary targets for future acquisitions.",
+    note: "Huge state — market varies dramatically by city. No income tax advantage. College Station and San Antonio are primary targets for future acquisitions.",
   },
   {
     abbr: "UT",
@@ -522,7 +522,7 @@ export const STATES: State[] = [
     inv: "hot",
     invL: "Hot",
     driver: "Pentagon/DOD, Amazon HQ2 (Arlington), JMU/UVA/VT, Naval Station Norfolk, CIA/NSA",
-    note: "Northern Virginia is one of the most stable markets in the US — government/defense/Amazon demand. Hampton Roads is #9 on ADJL defense list. Harrisonburg is #7 college market.",
+    note: "Northern Virginia is one of the most stable markets in the US — government/defense/Amazon demand. Hampton Roads is #9 on the defense list. Harrisonburg is #7 college market.",
   },
   {
     abbr: "WA",

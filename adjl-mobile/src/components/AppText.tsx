@@ -1,42 +1,23 @@
 import { Text, type TextProps } from "react-native";
-import { Colors, Fonts } from "@/constants/adjl";
+import { Colors, Type, type TypeVariant } from "@/constants/theme";
 
-type Variant =
-  | "display"
-  | "displayBold"
-  | "displayLight"
-  | "displayItalic"
-  | "body"
-  | "bodyMedium"
-  | "bodySemibold"
-  | "bodyBold"
-  | "bodyLight"
-  | "condensed"
-  | "condensedMedium";
+type Tone = "default" | "secondary" | "muted" | "inverse" | "accent" | "positive" | "negative";
 
-const FAMILY: Record<Variant, string> = {
-  display: Fonts.display,
-  displayBold: Fonts.displayBold,
-  displayLight: Fonts.displayLight,
-  displayItalic: Fonts.displayItalic,
-  body: Fonts.body,
-  bodyMedium: Fonts.bodyMedium,
-  bodySemibold: Fonts.bodySemibold,
-  bodyBold: Fonts.bodyBold,
-  bodyLight: Fonts.bodyLight,
-  condensed: Fonts.condensed,
-  condensedMedium: Fonts.condensedMedium,
+const TONE: Record<Tone, string> = {
+  default: Colors.text,
+  secondary: Colors.textSecondary,
+  muted: Colors.textMuted,
+  inverse: Colors.textInverse,
+  accent: Colors.accent,
+  positive: Colors.positive,
+  negative: Colors.negative,
 };
 
 export function AppText({
   variant = "body",
+  tone = "default",
   style,
   ...props
-}: TextProps & { variant?: Variant }) {
-  return (
-    <Text
-      {...props}
-      style={[{ fontFamily: FAMILY[variant], color: Colors.cream }, style]}
-    />
-  );
+}: TextProps & { variant?: TypeVariant; tone?: Tone }) {
+  return <Text {...props} style={[Type[variant], { color: TONE[tone] }, style]} />;
 }

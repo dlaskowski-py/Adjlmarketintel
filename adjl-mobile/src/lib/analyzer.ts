@@ -42,11 +42,11 @@ export interface AnalyzerInputs {
 }
 
 export interface AnalysisResult {
-  adjl: ScenarioResult;
+  partnership: ScenarioResult;
   deal5: ScenarioResult;
   solo: ScenarioResult;
   verdicts: {
-    adjl: Verdict;
+    partnership: Verdict;
     deal5: Verdict;
     solo: Verdict;
   };
@@ -151,15 +151,15 @@ export function metricClass(val: number, good: number, warn: number): "good" | "
 // Runs all three ownership scenarios at 20% down.
 export function runAnalysis(inputs: AnalyzerInputs): AnalysisResult {
   const { price, units, bedsPerUnit, rentPerUnit, strategy, rate } = inputs;
-  const adjl = calcScenario(price, units, bedsPerUnit, rentPerUnit, strategy, rate, "ADJL Owned", 0.2, 3);
+  const partnership = calcScenario(price, units, bedsPerUnit, rentPerUnit, strategy, rate, "Full Ownership", 0.2, 3);
   const deal5 = calcScenario(price, units, bedsPerUnit, rentPerUnit, strategy, rate, "Investor Deal", 0.2, 5);
   const solo = calcScenario(price, units, bedsPerUnit, rentPerUnit, strategy, rate, "Single Investor", 0.2, 1);
   return {
-    adjl,
+    partnership,
     deal5,
     solo,
     verdicts: {
-      adjl: verdict(adjl.irr, adjl.dscr, adjl.onePctRule),
+      partnership: verdict(partnership.irr, partnership.dscr, partnership.onePctRule),
       deal5: verdict(deal5.irr, deal5.dscr, deal5.onePctRule),
       solo: verdict(solo.irr, solo.dscr, solo.onePctRule),
     },

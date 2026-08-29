@@ -3,127 +3,115 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { DetailScaffold } from "@/components/DetailScaffold";
 import { AppText } from "@/components/AppText";
 import { AISynopsis } from "@/components/AISynopsis";
-import { ListingCards, zillowUrl, redfinUrl } from "@/components/ListingCards";
-import {
-  Tag,
-  TAG_COLORS,
-  growthColor,
-  ScoreBar,
-  MetricBox,
-  InfoSection,
-  GoldButton,
-  ActiveBadge,
-} from "@/components/ui";
-import { Colors } from "@/constants/adjl";
+import { Paywalled } from "@/components/Paywalled";
+import { Badge, Button, Card, EmptyState, Row, Section } from "@/components/ui";
+import { Spacing } from "@/constants/theme";
 import { TOP20 } from "@/data/markets";
 import { buildMarketPrompt } from "@/lib/prompts";
 
-export default function MarketDetailScreen() {
+const zillowUrl = (city: string) =>
+  `https://www.zillow.com/homes/for_sale/${encodeURIComponent(city)}_rb/?price=0-500000&beds=2-&homeTypes=multi-family`;
+
+export default function MarketDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const m = TOP20.find((x) => x.id === id);
+  const market = TOP20.find((m) => m.id === id);
 
-  if (!m) {
+  if (!market) {
     return (
       <DetailScaffold title="Market">
-        <AppText variant="body" style={{ color: Colors.muted }}>
-          Market not found.
-        </AppText>
+        <EmptyState title="Not found" message="That market is no longer available." />
       </DetailScaffold>
     );
   }
 
-  const [cityName, stateAbbr] = m.city.split(",").map((s) => s.trim());
-  const prompt = buildMarketPrompt({
-    city: m.city,
-    driver: m.drv,
-    median: m.median,
-    rent: m.rent,
-    growth: m.growth,
-  });
+  const growthTone = market.bc === "bu" ? "positive" : market.bc === "bd" ? "negative" : "neutral";
 
   return (
-    <DetailScaffold title={m.rank}>
-      {m.active && (
-        <View style={{ alignSelf: "flex-start", marginBottom: 10 }}>
-          <ActiveBadge label="★ ADJL ACTIVE DEAL" />
+    <DetailScaffold title={market.city}>
+      <View style={{ gap: Spacing.sm, marginBottom: Spacing.xl }}>
+        <AppText variant="display">{market.city}</AppText>
+        <AppText variant="body" tone="secondary">
+          {market.drv}
+        </AppText>
+        <View style={styles.badges}>
+          <Badge label={market.tlbl} tone="accent" />
+          <Badge label={`Score ${market.score.toFixed(1)}`} tone="neutral" />
+          <Badge label={market.growth} tone={growthTone} />
         </View>
-      )}
+      </View>
 
-      {/* Header */}
-      <View style={styles.hdr}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 5 }}>
-          <AppText variant="display" style={styles.rank}>
-            {m.rank}
+      <Section title="Fundamentals">
+        <Card padded={false} style={{ paddingHorizontal: Spacing.lg }}>
+          <Row label="Median price" value={market.median} />
+          <Row label="Average rent" value={market.rent} />
+          <Row label="Vacancy" value={market.vac} />
+          <Row label="Per-room rate" value={market.perRoom} />
+        </Card>
+      </Section>
+
+      <Section title="Why this market">
+        <Card>
+          <AppText variant="body" tone="secondary">
+            {market.why}
           </AppText>
-          <Tag label={m.tlbl} color={TAG_COLORS[m.tcls] ?? Colors.goldL} />
-        </View>
-        <AppText variant="display" style={styles.city}>
-          {m.city}
-        </AppText>
-        <AppText variant="body" style={styles.drv}>
-          {m.drv}
-        </AppText>
-        <View style={styles.scoreRow}>
-          <View>
-            <AppText variant="displayBold" style={styles.scoreBig}>
-              {m.score}
-            </AppText>
-            <AppText variant="bodySemibold" style={styles.scoreLbl}>
-              ADJL Score / 10
-            </AppText>
-          </View>
-          <ScoreBar score={m.score} />
-        </View>
-      </View>
+        </Card>
+      </Section>
 
-      {/* Metrics 2×2 */}
-      <View style={styles.metrics}>
-        <MetricBox value={m.median} label="Median Home Price" />
-        <MetricBox value={m.rent} label="Avg Rent" badge={m.growth} badgeColor={growthColor(m.bc)} />
-        <MetricBox value={m.vac} label="Vacancy" />
-        <MetricBox value={m.perRoom} label="Per-Room Rate" />
-      </View>
+      <Section title="Strategy">
+        <Card>
+          <AppText variant="body" tone="secondary">
+            {market.strat}
+          </AppText>
+        </Card>
+      </Section>
 
-      <AISynopsis cacheKey={`market-${m.id}`} prompt={prompt} label="AI Growth Synopsis" />
+      <Section title="Key risk">
+        <Card>
+          <AppText variant="body" tone="secondary">
+            {market.risk}
+          </AppText>
+        </Card>
+      </Section>
 
-      <InfoSection title="Why This Market" text={m.why} />
-      <InfoSection title="ADJL Strategy" text={m.strat} kind="strategy" />
-      <InfoSection title="Key Risk" text={m.risk} kind="risk" />
+      <Section title="AI outlook">
+        <Paywalled
+          title="AI market outlook"
+          message="A written read on what's driving this market and where it goes over 3–5 years."
+        >
+          <AISynopsis
+            cacheKey={`market-${market.id}`}
+            prompt={buildMarketPrompt({
+              city: market.city,
+              driver: market.drv,
+              median: market.median,
+              rent: market.rent,
+              growth: market.growth,
+            })}
+          />
+        </Paywalled>
+      </Section>
 
-      <ListingCards city={cityName} state={stateAbbr || ""} />
-
-      {/* Actions */}
-      <View style={{ gap: 9, marginTop: 4 }}>
-        <GoldButton
-          label="⚡ Analyze a Property Here"
+      <View style={{ gap: Spacing.md }}>
+        <Button
+          label="Analyze a property here"
           onPress={() =>
             router.push({
               pathname: "/(tabs)/analyze",
-              params: { city: m.city, price: m.median.replace(/[^0-9]/g, "") },
+              params: { city: market.city, price: market.median.replace(/[^0-9]/g, "") },
             })
           }
         />
-        <View style={{ flexDirection: "row", gap: 9 }}>
-          <View style={{ flex: 1 }}>
-            <GoldButton outline label="Zillow →" onPress={() => Linking.openURL(zillowUrl(m.city))} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <GoldButton outline label="Redfin →" onPress={() => Linking.openURL(redfinUrl(cityName))} />
-          </View>
-        </View>
+        <Button
+          label="Browse listings on Zillow"
+          variant="secondary"
+          onPress={() => Linking.openURL(zillowUrl(market.city))}
+        />
       </View>
     </DetailScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  hdr: { borderBottomWidth: 1, borderBottomColor: Colors.border, paddingBottom: 14, marginBottom: 14 },
-  rank: { fontSize: 15, color: Colors.gold, opacity: 0.55 },
-  city: { fontSize: 28, color: Colors.cream, marginBottom: 3 },
-  drv: { fontSize: 12, color: Colors.goldL, opacity: 0.75, marginBottom: 12 },
-  scoreRow: { flexDirection: "row", alignItems: "center", gap: 14 },
-  scoreBig: { fontSize: 38, lineHeight: 40, color: Colors.gold },
-  scoreLbl: { fontSize: 8.5, letterSpacing: 1.4, textTransform: "uppercase", color: Colors.goldDim },
-  metrics: { flexDirection: "row", flexWrap: "wrap", gap: 9, marginBottom: 16 },
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginTop: Spacing.sm },
 });

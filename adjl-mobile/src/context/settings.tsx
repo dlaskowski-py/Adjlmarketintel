@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import * as SecureStore from "expo-secure-store";
+import { StorageKeys } from "@/lib/storage";
 
 // API keys are entered manually in the in-app Settings screen and stored in
 // the iOS keychain (SecureStore). Nothing is hardcoded or shipped in the binary.
 const STORE_KEYS = {
-  anthropic: "adjl_key_anthropic",
-  rentcast: "adjl_key_rentcast",
+  anthropic: StorageKeys.keyAnthropic,
+  rentcast: StorageKeys.keyRentcast,
 } as const;
 
 interface SettingsContextValue {

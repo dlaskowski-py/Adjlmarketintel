@@ -1,22 +1,17 @@
 import { useMemo, useState } from "react";
-import { View, TextInput, Pressable, StyleSheet } from "react-native";
+import { View, FlatList, TextInput, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { TabScaffold } from "@/components/TabScaffold";
+import { Screen } from "@/components/Screen";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { AppText } from "@/components/AppText";
-import { Hero, StatBar, SectionHeader, MarketRow } from "@/components/ui";
-import { Colors, Fonts, Spacing } from "@/constants/adjl";
-import { TOP20 } from "@/data/markets";
+import { Badge, Segmented, EmptyState } from "@/components/ui";
+import { Colors, Radius, Spacing, Type } from "@/constants/theme";
+import { TOP20, type Market } from "@/data/markets";
+import { STATES, type State } from "@/data/states";
 
-const STATS = [
-  { value: "50", label: "States Covered" },
-  { value: "20", label: "Curated Markets" },
-  { value: "$175K", label: "Lowest Entry" },
-  { value: "$835K", label: "Highest (HI)" },
-  { value: "$355K", label: "National Avg" },
-  { value: "2026", label: "Live Data" },
-];
+type Scope = "markets" | "states";
 
-const FILTERS = [
+const CATEGORY_FILTERS = [
   { key: "all", label: "All" },
   { key: "college", label: "College" },
   { key: "military", label: "Military" },
@@ -24,104 +19,211 @@ const FILTERS = [
   { key: "defense", label: "Defense" },
 ];
 
-export default function Top20Screen() {
+const INV_TONE: Record<State["inv"], "positive" | "accent" | "neutral" | "negative"> = {
+  hot: "positive",
+  good: "accent",
+  mod: "neutral",
+  cau: "negative",
+};
+
+const growthTone = (bc: Market["bc"]) =>
+  bc === "bu" ? "positive" : bc === "bd" ? "negative" : "secondary";
+
+function MarketCard({ market: m, onPress }: { market: Market; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+      <View style={styles.cardTop}>
+        <View style={{ flex: 1 }}>
+          <AppText variant="heading">{m.city}</AppText>
+          <AppText variant="label" tone="secondary" numberOfLines={1} style={{ marginTop: 2 }}>
+            {m.drv}
+          </AppText>
+        </View>
+        <View style={{ alignItems: "flex-end", gap: 4 }}>
+          <AppText variant="numeric">{m.score.toFixed(1)}</AppText>
+          <AppText variant="caption" tone="muted">
+            SCORE
+          </AppText>
+        </View>
+      </View>
+      <View style={styles.cardMetrics}>
+        <AppText variant="label" tone="secondary">
+          {m.median} median
+        </AppText>
+        <AppText variant="label" tone="muted">
+          ·
+        </AppText>
+        <AppText variant="label" tone="secondary">
+          {m.rent}
+        </AppText>
+        <AppText variant="label" tone={growthTone(m.bc)}>
+          {m.growth}
+        </AppText>
+      </View>
+    </Pressable>
+  );
+}
+
+function StateCard({ state: s, onPress }: { state: State; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+      <View style={styles.cardTop}>
+        <View style={styles.abbr}>
+          <AppText variant="label">{s.abbr}</AppText>
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppText variant="heading">{s.name}</AppText>
+          <AppText variant="label" tone="secondary" style={{ marginTop: 2 }}>
+            {s.price} median · {s.rent}/mo
+          </AppText>
+        </View>
+        <Badge label={s.invL} tone={INV_TONE[s.inv]} />
+      </View>
+    </Pressable>
+  );
+}
+
+export default function MarketsScreen() {
   const router = useRouter();
-  const [filter, setFilter] = useState("all");
+  const [scope, setScope] = useState<Scope>("markets");
+  const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
 
-  const filtered = useMemo(() => {
+  const markets = useMemo(() => {
     const q = query.toLowerCase().trim();
     return TOP20.filter((m) => {
-      if (filter !== "all" && !m.cat.includes(filter)) return false;
-      if (q && !`${m.city} ${m.drv} ${m.cat}`.toLowerCase().includes(q)) return false;
-      return true;
+      if (category !== "all" && !m.cat.includes(category)) return false;
+      return !q || `${m.city} ${m.drv} ${m.cat}`.toLowerCase().includes(q);
     });
-  }, [filter, query]);
+  }, [category, query]);
 
-  const college = filtered.filter((m) => m.cat.includes("college"));
-  const defense = filtered.filter((m) => !m.cat.includes("college"));
+  const states = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    return STATES.filter(
+      (s) => !q || `${s.name} ${s.abbr} ${s.driver}`.toLowerCase().includes(q)
+    );
+  }, [query]);
+
+  const showingMarkets = scope === "markets";
+  const count = showingMarkets ? markets.length : states.length;
 
   return (
-    <TabScaffold>
-      <Hero
-        title="70 Markets."
-        accent="Tap any to explore."
-        subtitle="All 50 states + 20 curated markets. Tap any row for an AI growth synopsis, pricing, and ADJL strategy. June 2026."
+    <Screen>
+      <ScreenHeader
+        title="Markets"
+        subtitle={`${TOP20.length} researched markets · all 50 states`}
       />
-      <StatBar stats={STATS} />
 
-      {/* Filter chips + search */}
-      <View style={styles.fbar}>
-        {FILTERS.map((f) => (
-          <Pressable
-            key={f.key}
-            onPress={() => setFilter(f.key)}
-            style={[styles.chip, filter === f.key && styles.chipActive]}
-          >
-            <AppText
-              variant="bodySemibold"
-              style={[styles.chipText, filter === f.key && { color: Colors.gold }]}
-            >
-              {f.label}
-            </AppText>
-          </Pressable>
-        ))}
+      <View style={styles.controls}>
+        <Segmented
+          value={scope}
+          onChange={setScope}
+          options={[
+            { value: "markets", label: "Markets" },
+            { value: "states", label: "States" },
+          ]}
+        />
+
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={showingMarkets ? "Search markets" : "Search states"}
+          placeholderTextColor={Colors.textMuted}
+          style={styles.search}
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+        />
+
+        {showingMarkets && (
+          <View style={styles.chips}>
+            {CATEGORY_FILTERS.map((f) => {
+              const active = category === f.key;
+              return (
+                <Pressable
+                  key={f.key}
+                  onPress={() => setCategory(f.key)}
+                  style={[styles.chip, active && styles.chipActive]}
+                >
+                  <AppText variant="label" tone={active ? "inverse" : "secondary"}>
+                    {f.label}
+                  </AppText>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </View>
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search markets…"
-        placeholderTextColor="rgba(248,245,239,0.25)"
-        style={styles.search}
-      />
 
-      {college.length > 0 && (
-        <>
-          <SectionHeader title="College Town Markets" count={`${college.length} Markets`} />
-          {college.map((m) => (
-            <MarketRow key={m.id} market={m} onPress={() => router.push(`/market/${m.id}`)} />
-          ))}
-        </>
+      {count === 0 ? (
+        <EmptyState
+          title="Nothing matches"
+          message={`No ${showingMarkets ? "markets" : "states"} match “${query}”.`}
+        />
+      ) : showingMarkets ? (
+        <FlatList
+          data={markets}
+          keyExtractor={(m) => m.id}
+          renderItem={({ item }) => (
+            <MarketCard market={item} onPress={() => router.push(`/market/${item.id}`)} />
+          )}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
+      ) : (
+        <FlatList
+          data={states}
+          keyExtractor={(s) => s.abbr}
+          renderItem={({ item }) => (
+            <StateCard state={item} onPress={() => router.push(`/state/${item.abbr}`)} />
+          )}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
       )}
-
-      {defense.length > 0 && (
-        <>
-          <SectionHeader title="Defense & Tech Boom Markets" count={`${defense.length} Markets`} />
-          {defense.map((m) => (
-            <MarketRow key={m.id} market={m} onPress={() => router.push(`/market/${m.id}`)} />
-          ))}
-        </>
-      )}
-    </TabScaffold>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  fbar: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 7,
-    marginHorizontal: Spacing.xl,
-    marginTop: Spacing.lg,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: "rgba(201,168,76,0.2)",
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-  },
-  chipActive: { borderColor: Colors.gold, backgroundColor: "rgba(201,168,76,0.07)" },
-  chipText: { fontSize: 10, letterSpacing: 1, textTransform: "uppercase", color: Colors.muted },
+  controls: { paddingHorizontal: Spacing.xl, gap: Spacing.md, paddingBottom: Spacing.md },
   search: {
-    marginHorizontal: Spacing.xl,
-    marginTop: 10,
     borderWidth: 1,
-    borderColor: "rgba(201,168,76,0.18)",
-    backgroundColor: "rgba(255,255,255,0.04)",
-    color: Colors.cream,
-    fontFamily: Fonts.body,
-    fontSize: 14,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceSunken,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    color: Colors.text,
+    ...Type.body,
+  },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
+  chip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.bgSubtle,
+  },
+  chipActive: { backgroundColor: Colors.primary },
+  list: { paddingHorizontal: Spacing.xl, paddingBottom: 120, gap: Spacing.md },
+  card: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+  },
+  pressed: { opacity: 0.6 },
+  cardTop: { flexDirection: "row", alignItems: "center", gap: Spacing.md },
+  cardMetrics: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, flexWrap: "wrap" },
+  abbr: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.bgSubtle,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

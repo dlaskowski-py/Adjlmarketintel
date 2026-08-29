@@ -1,8 +1,16 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { AnalysisResult } from "@/lib/analyzer";
+import { StorageKeys } from "@/lib/storage";
 
-// Deals are stored locally on-device — the app is fully self-contained.
-const STORE_KEY = "adjl_pipeline_deals";
+// Deals are stored locally on-device. The payload is versioned so the shape can
+// evolve without stranding anyone's saved work.
+const STORE_KEY = StorageKeys.deals;
+const PAYLOAD_VERSION = 1;
+
+interface DealsPayload {
+  v: number;
+  deals: SavedDeal[];
+}
 
 export const STATUS_OPTIONS = ["Researching", "Under Review", "Active", "Passed"] as const;
 export type DealStatus = (typeof STATUS_OPTIONS)[number];
@@ -25,7 +33,6 @@ export interface SavedDeal {
   irr: number;
   status: DealStatus;
   notes?: string;
-  savedBy: string;
   savedAt: string; // ISO date
 }
 
@@ -33,15 +40,18 @@ export async function getDeals(): Promise<SavedDeal[]> {
   try {
     const raw = await AsyncStorage.getItem(STORE_KEY);
     if (!raw) return [];
-    const deals = JSON.parse(raw) as SavedDeal[];
-    return deals.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+    const parsed = JSON.parse(raw) as DealsPayload | SavedDeal[];
+    // Tolerate the legacy bare-array shape written before versioning.
+    const deals = Array.isArray(parsed) ? parsed : (parsed.deals ?? []);
+    return [...deals].sort((a, b) => b.savedAt.localeCompare(a.savedAt));
   } catch {
     return [];
   }
 }
 
 async function persist(deals: SavedDeal[]) {
-  await AsyncStorage.setItem(STORE_KEY, JSON.stringify(deals));
+  const payload: DealsPayload = { v: PAYLOAD_VERSION, deals };
+  await AsyncStorage.setItem(STORE_KEY, JSON.stringify(payload));
 }
 
 export async function saveDeal(deal: Omit<SavedDeal, "id" | "savedAt" | "status">): Promise<SavedDeal> {

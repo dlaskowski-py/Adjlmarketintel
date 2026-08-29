@@ -4,28 +4,46 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "@/components/Screen";
 import { AppText } from "@/components/AppText";
-import { Colors, Spacing } from "@/constants/adjl";
+import { Colors, Spacing } from "@/constants/theme";
 
-// Pushed-screen wrapper: back chevron + screen title, scrollable body.
-export function DetailScaffold({ title, children }: { title: string; children: ReactNode }) {
+/** Pushed-screen wrapper: back control + title, scrolling body. */
+export function DetailScaffold({
+  title,
+  children,
+  onClose,
+}: {
+  title?: string;
+  children: ReactNode;
+  onClose?: () => void;
+}) {
   const router = useRouter();
   return (
     <Screen>
       <View style={styles.bar}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
-          <Ionicons name="chevron-back" size={20} color={Colors.gold} />
-          <AppText variant="bodySemibold" style={styles.backText}>
-            Back
-          </AppText>
+        <Pressable
+          onPress={onClose ?? (() => router.back())}
+          hitSlop={12}
+          accessibilityLabel="Go back"
+          style={({ pressed }) => pressed && { opacity: 0.5 }}
+        >
+          <Ionicons
+            name={onClose ? "close" : "chevron-back"}
+            size={24}
+            color={Colors.text}
+          />
         </Pressable>
-        <AppText variant="bodyBold" style={styles.title} numberOfLines={1}>
-          {title}
-        </AppText>
-        <View style={{ width: 64 }} />
+        {title ? (
+          <AppText variant="heading" numberOfLines={1} style={{ flex: 1 }}>
+            {title}
+          </AppText>
+        ) : (
+          <View style={{ flex: 1 }} />
+        )}
       </View>
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: 60 }}
+        contentContainerStyle={{ paddingHorizontal: Spacing.xl, paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {children}
       </ScrollView>
@@ -37,21 +55,9 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  back: { flexDirection: "row", alignItems: "center", width: 64 },
-  backText: { fontSize: 12, color: Colors.gold },
-  title: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: "uppercase",
-    color: Colors.goldDim,
+    paddingBottom: Spacing.lg,
   },
 });

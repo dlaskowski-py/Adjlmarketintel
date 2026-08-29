@@ -3,61 +3,75 @@ import { useLocalSearchParams } from "expo-router";
 import { DetailScaffold } from "@/components/DetailScaffold";
 import { AppText } from "@/components/AppText";
 import { AISynopsis } from "@/components/AISynopsis";
-import { Tag, INV_COLORS, MetricBox, InfoSection, ActiveBadge } from "@/components/ui";
-import { Colors } from "@/constants/adjl";
-import { STATES } from "@/data/states";
+import { Paywalled } from "@/components/Paywalled";
+import { Badge, Card, EmptyState, Row, Section } from "@/components/ui";
+import { Spacing } from "@/constants/theme";
+import { STATES, type State } from "@/data/states";
 import { buildStatePrompt } from "@/lib/prompts";
 
-export default function StateDetailScreen() {
-  const { abbr } = useLocalSearchParams<{ abbr: string }>();
-  const s = STATES.find((x) => x.abbr === abbr);
+const INV_TONE: Record<State["inv"], "positive" | "accent" | "neutral" | "negative"> = {
+  hot: "positive",
+  good: "accent",
+  mod: "neutral",
+  cau: "negative",
+};
 
-  if (!s) {
+export default function StateDetail() {
+  const { abbr } = useLocalSearchParams<{ abbr: string }>();
+  const state = STATES.find((s) => s.abbr === abbr);
+
+  if (!state) {
     return (
       <DetailScaffold title="State">
-        <AppText variant="body" style={{ color: Colors.muted }}>
-          State not found.
-        </AppText>
+        <EmptyState title="Not found" message="That state is no longer available." />
       </DetailScaffold>
     );
   }
 
-  const prompt = buildStatePrompt({ name: s.name, price: s.price, rent: s.rent });
-
   return (
-    <DetailScaffold title={s.abbr}>
-      <View style={styles.hdr}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 6, flexWrap: "wrap" }}>
-          <AppText variant="displayBold" style={styles.abbr}>
-            {s.abbr}
-          </AppText>
-          <Tag label={`${s.invL} Market`} color={INV_COLORS[s.inv]} />
-          {s.active && <ActiveBadge label="★ ADJL ACTIVE DEAL — ATLANTA" />}
+    <DetailScaffold title={state.name}>
+      <View style={{ gap: Spacing.sm, marginBottom: Spacing.xl }}>
+        <AppText variant="display">{state.name}</AppText>
+        <AppText variant="body" tone="secondary">
+          {state.driver}
+        </AppText>
+        <View style={styles.badges}>
+          <Badge label={`${state.invL} market`} tone={INV_TONE[state.inv]} />
+          <Badge label={state.growth} tone="positive" />
         </View>
-        <AppText variant="display" style={styles.name}>
-          {s.name}
-        </AppText>
-        <AppText variant="body" style={styles.driver}>
-          {s.driver}
-        </AppText>
       </View>
 
-      <View style={styles.metrics}>
-        <MetricBox value={s.price} label="Median Home Price" />
-        <MetricBox value={`${s.rent}/mo`} label="Avg Rent" badge={s.growth} badgeColor={Colors.greenBright} />
-      </View>
+      <Section title="Fundamentals">
+        <Card padded={false} style={{ paddingHorizontal: Spacing.lg }}>
+          <Row label="Median price" value={state.price} />
+          <Row label="Average rent" value={`${state.rent}/mo`} />
+          <Row label="Rent growth" value={state.growth} />
+        </Card>
+      </Section>
 
-      <AISynopsis cacheKey={`state-${s.abbr}`} prompt={prompt} label="AI Market Analysis" />
+      <Section title="Overview">
+        <Card>
+          <AppText variant="body" tone="secondary">
+            {state.note}
+          </AppText>
+        </Card>
+      </Section>
 
-      <InfoSection title="Market Overview" text={s.note} />
+      <Section title="AI outlook">
+        <Paywalled
+          title="AI state analysis"
+          message="Where this state's demand is coming from, which cities to target, and the main risks."
+        >
+          <AISynopsis
+            cacheKey={`state-${state.abbr}`}
+            prompt={buildStatePrompt({ name: state.name, price: state.price, rent: state.rent })}
+          />
+        </Paywalled>
+      </Section>
     </DetailScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  hdr: { borderBottomWidth: 1, borderBottomColor: Colors.border, paddingBottom: 14, marginBottom: 14 },
-  abbr: { fontSize: 34, lineHeight: 36, color: Colors.gold },
-  name: { fontSize: 28, color: Colors.cream, marginBottom: 3 },
-  driver: { fontSize: 12, lineHeight: 18, color: Colors.goldL, opacity: 0.75 },
-  metrics: { flexDirection: "row", flexWrap: "wrap", gap: 9, marginBottom: 16 },
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginTop: Spacing.sm },
 });

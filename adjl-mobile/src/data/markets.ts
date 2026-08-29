@@ -1,5 +1,5 @@
 // ── CURATED TOP 20 MARKETS ──────────────────────────────────
-// Extracted verbatim from the ADJL Market Intelligence HTML MVP.
+// Curated market research data set.
 // DO NOT change the market data.
 
 export interface Market {
@@ -21,6 +21,9 @@ export interface Market {
   why: string;
   strat: string;
   risk: string;
+  /** City centroid — used for nearest-market lookup. */
+  lat?: number;
+  lng?: number;
 }
 
 export const TOP20: Market[] = [
@@ -40,9 +43,11 @@ export const TOP20: Market[] = [
     vac: "Low",
     perRoom: "$850–950/bed",
     bc: "bu",
-    why: "74,000-student university creates insatiable demand. Fourplexes at $350K–$500K. Per-room leasing at $900/bed generates strong cash flow. No Texas state income tax. Ideal target market for ADJL's per-room strategy.",
+    why: "74,000-student university creates insatiable demand. Fourplexes at $350K–$500K. Per-room leasing at $900/bed generates strong cash flow. No Texas state income tax. Ideal target market for a per-room leasing strategy.",
     strat: "Buy fourplexes within 3 miles of campus. Per-room to Aggie students. Hire local PM at 10%.",
     risk: "Oversupply in some submarkets. Verify per-room comps before committing.",
+    lat: 30.628,
+    lng: -96.3344,
   },
   {
     id: "c2",
@@ -63,6 +68,8 @@ export const TOP20: Market[] = [
     why: "Ranked #1 nationally for college town investing. Game-day STR demand near Bryant-Denny Stadium pushes rents to $1,600/bed. Low entry prices make DSCR math easy.",
     strat: "Properties within 0.5 mi of stadium. Combine game-day Airbnb with student leases.",
     risk: "Market awareness rising — competition increasing. Act before prices fully catch up.",
+    lat: 33.2098,
+    lng: -87.5692,
   },
   {
     id: "c3",
@@ -83,6 +90,8 @@ export const TOP20: Market[] = [
     why: "3rd largest US campus + Intel $20B semiconductor plant adding thousands of jobs. Housing deficit of 14K–19K units/year. Prices 33% below national avg.",
     strat: "University District (43201/43202) for student demand. Clintonville for grad students.",
     risk: "Property taxes ~1.8% + 2.5% Columbus municipal income tax.",
+    lat: 39.9612,
+    lng: -82.9988,
   },
   {
     id: "c4",
@@ -103,6 +112,8 @@ export const TOP20: Market[] = [
     why: "No FL state income tax, no STR permit requirements. 52K students, 62% renters. Gators football drives game-day STR premium.",
     strat: "Long-term student leases + Gators game-day STR. No permit barriers.",
     risk: "Hurricane exposure — budget for insurance. Some HOA STR restrictions.",
+    lat: 29.6516,
+    lng: -82.3248,
   },
   {
     id: "c5",
@@ -123,6 +134,8 @@ export const TOP20: Market[] = [
     why: "UGA drives 40K students. Home values up 5.1% YoY. $307K entry is very accessible for multifamily.",
     strat: "Five Points and Normaltown near campus. Strong local economy beyond university.",
     risk: "Georgia income tax 5.49%. Some occupancy limits on unrelated tenants.",
+    lat: 33.9519,
+    lng: -83.3576,
   },
   {
     id: "c6",
@@ -143,6 +156,8 @@ export const TOP20: Market[] = [
     why: "Parent-purchase model — parents buy for student children — unique demand driver. Iron Bowl weekend STR premium. Cost of living 4% below national avg.",
     strat: "Within 1 mi of campus. Market to parents of incoming freshmen.",
     risk: "Slightly pricier than Tuscaloosa. Market awareness rising fast.",
+    lat: 32.6099,
+    lng: -85.4808,
   },
   {
     id: "c7",
@@ -163,6 +178,8 @@ export const TOP20: Market[] = [
     why: "JMU demand in a tight, contained market. Only 26 days avg on market. Grad students rent year-round.",
     strat: "Move fast — deals don't sit. Target 4-unit properties near JMU.",
     risk: "Virginia income tax. Smaller market — less deal flow.",
+    lat: 38.4496,
+    lng: -78.8689,
   },
   {
     id: "c8",
@@ -183,6 +200,8 @@ export const TOP20: Market[] = [
     why: "#1 multifamily market Spring 2026. $265K median. Indiana landlord-friendly laws. Strong healthcare, logistics, tech job market.",
     strat: "Broad Ripple and Fountain Square. Professional + student mix = low turnover.",
     risk: "Less pure college play. Cold winters = higher utility costs.",
+    lat: 39.7684,
+    lng: -86.1581,
   },
   {
     id: "c9",
@@ -203,6 +222,8 @@ export const TOP20: Market[] = [
     why: "Lowest entry price on the list. Ann Arbor/UM overflow demand. Ideal for multi-property BRRRR strategy.",
     strat: "Buy multiple properties. BRRRR at these prices. Near EMU campus.",
     risk: "Lower rents per door. Michigan weather = higher maintenance.",
+    lat: 42.2412,
+    lng: -83.6129,
   },
   {
     id: "d1",
@@ -223,6 +244,8 @@ export const TOP20: Market[] = [
     why: "Largest joint base in the US. $41B annual economic impact. No TX income tax. BAH increased 4.2% in 2026. Most affordable major Texas metro.",
     strat: "Near JBSA: Universal City, Converse, Live Oak. Military tenants = reliable BAH income.",
     risk: "New construction competing. Inventory up 11.5% — negotiate hard.",
+    lat: 29.4241,
+    lng: -98.4936,
   },
   {
     id: "d2",
@@ -243,6 +266,8 @@ export const TOP20: Market[] = [
     why: "19,600 net jobs added in 12 months. $1.1B multifamily investment in 2025. Price per unit up 18.5% YoY. Supply wave absorbed.",
     strat: "SE Raleigh and Durham downtown. Young tech workers 25-35.",
     risk: "$420K entry. Durham had -12.8% rent decline in 2025 — verify submarket.",
+    lat: 35.7796,
+    lng: -78.6382,
   },
   {
     id: "d3",
@@ -263,6 +288,8 @@ export const TOP20: Market[] = [
     why: "$2B data center coming online mid-2026. Army Cyber Command brings permanent tech professionals. $207K median — best value on list. Institutional investors like Blackfin already buying here.",
     strat: "Grovetown and Martinez near Fort Eisenhower. Military BAH covers rent easily.",
     risk: "Supply wave absorbing. Georgia income tax.",
+    lat: 33.4735,
+    lng: -82.0105,
   },
   {
     id: "d4",
@@ -283,6 +310,8 @@ export const TOP20: Market[] = [
     why: "2nd largest banking center. Top 5 nationally for multifamily rent growth. Supply peaked 2025 — CBRE projects above-avg rent growth through 2026+.",
     strat: "South End and Uptown for young professionals. Huntersville for families.",
     risk: "$400K entry. Verify submarket supply absorption.",
+    lat: 35.2271,
+    lng: -80.8431,
   },
   {
     id: "d5",
@@ -303,6 +332,8 @@ export const TOP20: Market[] = [
     why: "Amazon $230M ops center, Oracle campus, Vanderbilt/HCA healthcare. No TN income tax. High tenant retention.",
     strat: "East Nashville, Germantown. Antioch for workforce housing.",
     risk: "$430K upper end. STR regulations tightening in Nashville proper.",
+    lat: 36.1627,
+    lng: -86.7816,
   },
   {
     id: "d6",
@@ -323,6 +354,8 @@ export const TOP20: Market[] = [
     why: "NASA, Boeing, Lockheed, Northrop, Redstone Arsenal. Fastest growing AL city. Defense contractor tenants earn $80K–$150K+.",
     strat: "Downtown, Twickenham, Madison for workforce housing. Avoid luxury apartments.",
     risk: "Elevated vacancy in some submarkets after 2025 new construction.",
+    lat: 34.7304,
+    lng: -86.5861,
   },
   {
     id: "d7",
@@ -343,6 +376,8 @@ export const TOP20: Market[] = [
     why: "5 military installations. Space Force HQ expansion = new personnel annually. Denver overflow. Among highest BAH rates nationally.",
     strat: "Near Fort Carson and Peterson SFB. Powers Corridor for Space Force.",
     risk: "$430K median. Colorado income tax. Denver metro price volatility.",
+    lat: 38.8339,
+    lng: -104.8214,
   },
   {
     id: "d8",
@@ -363,6 +398,8 @@ export const TOP20: Market[] = [
     why: "Micron $15B semiconductor plant. Vacancy peaked at 18% in 2025 — projected 6% by end of 2026. Classic buy-before-recovery window.",
     strat: "Buy NOW while vacancy elevated. Negotiate hard. Market tightens significantly by Q4 2026.",
     risk: "Cash flow weak in year 1. $440K. Idaho income tax.",
+    lat: 43.615,
+    lng: -116.2023,
   },
   {
     id: "d9",
@@ -383,6 +420,8 @@ export const TOP20: Market[] = [
     why: "Naval Station Norfolk. 100,000+ military and defense contractor workforce. Most stable tenant base in real estate — BAH guaranteed by US gov.",
     strat: "Norfolk, Chesapeake, Virginia Beach within 15 min of base gates.",
     risk: "Virginia income tax. Well-known market — competition exists.",
+    lat: 36.8508,
+    lng: -76.2859,
   },
   {
     id: "d10",
@@ -403,5 +442,7 @@ export const TOP20: Market[] = [
     why: "Fastest-growing US port. Amazon, Target, IKEA distribution centers. Price per unit grew 75.3% — highest in peer group.",
     strat: "Workforce housing near port. Blue-collar $50K–$80K tenants. Consider Pooler suburb.",
     risk: "Supply wave still absorbing. Hurricane/flood risk — premium insurance.",
+    lat: 32.0809,
+    lng: -81.0912,
   },
 ];

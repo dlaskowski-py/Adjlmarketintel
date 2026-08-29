@@ -1,76 +1,110 @@
-# ADJL Capital — Market Intelligence (iOS)
+# Roofline (iOS)
 
-Native iOS app for ADJL Capital, built with **React Native + Expo + expo-router**.
-Fully self-contained — no backend required. Replicates the design system from the
-web MVP (navy `#0F1A2E`, gold `#C9A84C`, Cormorant Garamond / Barlow / Barlow Condensed).
+Know what a house is really worth. Native iOS app built with **React Native + Expo (SDK 53) + expo-router**.
 
-## Features
+Independent consumer product — no firm branding anywhere in the UI. The curated
+market research it ships with is proprietary, just unattributed.
 
-- **Bring-your-own API keys** — enter your Anthropic and (optional) RentCast keys
-  in the in-app **Settings** screen (gear icon). Keys are stored in the iOS
-  keychain via `expo-secure-store`, validated live, and never shipped in the
-  binary. The app degrades gracefully when keys are absent.
-- **Top 20 curated markets** — filter chips (College / Military / Tech / Defense),
-  search, full dataset, tappable rows.
-- **All 50 states** — sortable (A–Z, price, hottest) + search, ACTIVE DEAL badge
-  on Georgia.
-- **Market & state detail screens** — animated ADJL score bar, metric grid,
-  **Claude AI growth synopsis** (session-cached), Why/Strategy/Risk sections,
-  RentCast live listings with Zillow/Redfin fallback, one-tap "Analyze here".
-- **Property Analyzer** — paste a Zillow/Redfin URL (Claude extracts details) or
-  enter manually; runs the exact `calcScenario` engine across three ownership
-  scenarios (ADJL · 5-investor · solo) with DSCR / cap rate / 1% rule / IRR /
-  MOIC color coding and STRONG BUY / CONDITIONAL / PASS verdicts, plus an AI
-  investment analysis. RentCast auto-fills a rent estimate when an address is known.
-- **Deal Pipeline** (briefcase icon) — saved analyses persisted on-device
-  (AsyncStorage): summary stats, status cycling, notes, delete, expandable metrics.
-- **Login** — partners sign in with their @adjlcapital.com email; investors get
-  guest access with any email. Session persists in the keychain. (On-device demo
-  gate only — there is no backend or sensitive data behind it.)
+## What it does
+
+**Four tabs, deliberately plain.**
+
+| Tab | Free | Paid |
+|---|---|---|
+| **Markets** | Full research on 19 curated markets + all 50 states | AI market/state outlook |
+| **Nearby** | Your location, closest researched market, state context | Live listings within a radius |
+| **Analyze** | — | Full underwrite + itemized expenses + AI review |
+| **Saved** | View, annotate and delete your analyses (never gated) | — |
+
+Account and settings live behind the header icon rather than eating a tab.
+
+### The differentiated part
+
+The analyzer itemizes operating expenses and **labels every line with how much
+we actually know**:
+
+- `Actual` — straight from the county tax record
+- `Modeled` — derived from zip/state tables and property characteristics
+- `Assumed` — a defensible rule of thumb
+
+Tap any line to see its derivation (e.g. *"FL base rate $15/$1k, catastrophe-exposed
+zip ×1.35, pre-1950 ×1.3"*). These are never collapsed into one number. No
+competitor shows their work.
+
+Pasting a Zillow/Redfin/Realtor.com link parses the address **deterministically
+and offline** — it does not ask an LLM to guess a purchase price.
+
+## Monetization
+
+Monthly subscription through **RevenueCat** (`react-native-purchases`). Apple
+requires in-app purchase for digital subscriptions — Stripe is not an option.
+
+Gating is **feature-level, not route-level**: the paywall appears in place of the
+locked feature so users can see what they'd be buying, and the back stack stays
+coherent. A `<Paywalled>` wrapper handles this.
+
+> The client-side gate is UX only. Once the backend proxy exists it must verify
+> entitlement independently — a client-only gate is bypassed in minutes.
+
+## Location
+
+Foreground only (`when in use`). Never background, no tracking.
+
+Permission is checked with `getForegroundPermissionsAsync()` on mount and only
+**requested on an explicit tap** — iOS grants exactly one prompt, and spending it
+on app open is unrecoverable. A manual ZIP-code path is always available for
+users who decline, and is the only path testable without a device.
 
 ## Run it
 
 ```bash
 cd adjl-mobile
 npm install
-npx expo start        # press i for iOS simulator, or scan with Expo Go
+npx expo start        # press i for the simulator, or scan with Expo Go
 ```
 
-Then open **Settings** (gear icon) and paste your Anthropic API key
-(console.anthropic.com → API Keys) to enable AI features.
+Location works in Expo Go. **Purchases do not** — RevenueCat is a native module
+and needs a development build. Its Preview API Mode keeps the app loading in Expo
+Go regardless, and Account has a `__DEV__`-only "simulate subscription" toggle so
+the paid experience is demoable before billing is live.
 
-## Sending to investors (TestFlight)
+Set `EXPO_PUBLIC_REVENUECAT_IOS_KEY` to enable real purchases.
+
+## Verify
 
 ```bash
-npm install -g eas-cli
-eas login                       # Expo account
-eas build:configure
-eas build --platform ios        # needs an Apple Developer account ($99/yr)
-eas submit --platform ios       # uploads to App Store Connect → TestFlight
+npx tsc --noEmit      # types
+npx jest              # 74 tests
+npx expo export --platform ios --output-dir .export-check
 ```
 
-Invite investors by email in App Store Connect → TestFlight. Each tester adds
-their own API key in Settings (or you provision one shared key and rotate it
-after the demo).
-
-## Project layout
+## Layout
 
 ```
 src/
   app/
-    _layout.tsx           fonts + auth gate + route registry
-    (auth)/login.tsx      login (partners + investor guest access)
-    (tabs)/               Top 20 · States · College · Defense · Compare · Analyze
-    market/[id].tsx       market detail (AI synopsis, listings, actions)
-    state/[abbr].tsx      state detail (AI analysis)
-    settings.tsx          API key entry (modal, keychain-backed)
-    pipeline.tsx          saved deals
-  components/             AppText, Screen(+Header), AISynopsis, ListingCards, ui
-  constants/adjl.ts       design tokens (do not change)
-  context/                auth.tsx, settings.tsx
-  data/                   markets.ts (TOP20), states.ts (STATES) — verbatim
-  lib/                    analyzer.ts (exact math), prompts.ts (verbatim),
-                          claude.ts, rentcast.ts, pipeline.ts
+    _layout.tsx           providers + storage migration
+    (tabs)/               index (Markets) · nearby · analyze · saved
+    market/[id].tsx  state/[abbr].tsx
+    account.tsx  paywall.tsx        (modals)
+  components/             AppText, Screen, ui (primitives), Paywalled,
+                          AISynopsis, ExpenseBreakdown
+  constants/              brand.ts (rename the app here) · theme.ts
+  context/                subscription.tsx · settings.tsx
+  data/                   markets.ts (19, with coordinates) · states.ts (50)
+  lib/                    analyzer · expenseModel · expenseLines · addressFromUrl
+                          geo · rentcast · claude · pipeline · storage
+  services/propertyData.ts
 ```
 
-iOS-native — no Next.js or web-only libraries. © 2026 ADJL Capital, LLC.
+The app name appears in exactly one place — `src/constants/brand.ts` — plus
+`app.json`. Renaming is a two-file change.
+
+## Not done yet
+
+- **Backend proxy.** Subscribers should never see an API key. Until a server
+  holds the Anthropic/RentCast credentials and verifies entitlement, AI and
+  listings fall back to optional keys under Account → Data connections.
+- App Store Connect setup: Paid Apps agreement (24–48h to process — start early),
+  subscription product, RevenueCat wiring, sandbox testers.
+- Icon and splash art are still Expo placeholders.
