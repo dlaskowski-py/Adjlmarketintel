@@ -1,0 +1,204 @@
+//@version=6
+// ============================================================================
+// MACD Options Signal Engine
+// ----------------------------------------------------------------------------
+// WHAT THIS IS:
+//   A regime-filtered MACD crossover system used to time OPTIONS entries.
+//
+// WHAT THIS IS NOT:
+//   Pine has no options engine. This backtests the UNDERLYING. The reported
+//   win rate and PnL describe the SIGNAL, not contract returns. Per-contract
+//   results require an options backtest against real chains.
+//
+// WHY THE FILTERS EXIST:
+//   A raw MACD crossover is close to noise on liquid ETFs - it fires
+//   constantly in chop, and every one of those is a losing option trade once
+//   theta is paid. Three filters do the real work:
+//     1. TREND   - only take crosses aligned with the long-term regime.
+//     2. ADX     - require the market to actually trend, not range.
+//     3. IV RANK - the one most option traders skip. MACD crosses often fire
+//                  right after a volatility spike, which is the worst moment
+//                  to BUY premium and the best moment to SELL it. This filter
+//                  flips sides depending on the structure you trade.
+// ============================================================================
+
+strategy("MACD Options Signal Engine",
+     overlay                 = true,
+     initial_capital         = 10000,
+     default_qty_type        = strategy.percent_of_equity,
+     default_qty_value       = 100,
+     commission_type         = strategy.commission.percent,
+     commission_value        = 0.03,
+     slippage                = 2,
+     calc_on_every_tick      = false,
+     process_orders_on_close = true)
+
+// ---------------------------------------------------------------- INPUTS ---
+grpS = "Signal - MACD"
+fastLen     = input.int(12, "Fast EMA",   minval=1, group=grpS)
+slowLen     = input.int(26, "Slow EMA",   minval=1, group=grpS)
+sigLen      = input.int(9,  "Signal EMA", minval=1, group=grpS)
+requireZero = input.bool(true, "Require cross on correct side of zero line", group=grpS,
+     tooltip="Bullish crosses above zero, bearish below. Filters the weakest counter-trend crosses.")
+
+grpF = "Filters - Regime"
+useTrend = input.bool(true, "Trend filter", group=grpF)
+trendLen = input.int(200, "Trend MA length", minval=1, group=grpF)
+useAdx   = input.bool(true, "ADX trend-strength filter", group=grpF)
+adxLen   = input.int(14, "ADX length", minval=1, group=grpF)
+adxMin   = input.float(20.0, "ADX minimum", minval=0, group=grpF)
+
+grpV = "Filters - Implied Volatility"
+useIv     = input.bool(true, "IV rank filter", group=grpV)
+ivMode    = input.string("Buy premium (long options)", "Structure", group=grpV,
+     options=["Buy premium (long options)", "Sell premium (credit spreads)"],
+     tooltip="Long options want LOW IV rank. Credit spreads want HIGH IV rank.")
+ivSymbol  = input.symbol("CBOE:VIX", "IV proxy symbol", group=grpV,
+     tooltip="VIX suits SPX/SPY. An invalid symbol falls back to realised volatility.")
+ivLen     = input.int(252, "IV rank lookback (bars)", minval=20, group=grpV)
+ivBuyMax  = input.float(50.0, "Max IV rank to BUY premium",  minval=0, maxval=100, group=grpV)
+ivSellMin = input.float(50.0, "Min IV rank to SELL premium", minval=0, maxval=100, group=grpV)
+
+grpE = "Exits"
+atrLen      = input.int(14, "ATR length", minval=1, group=grpE)
+stopMult    = input.float(2.0, "Stop (ATR multiple)", minval=0.1, group=grpE)
+targetR     = input.float(2.0, "Target (R multiple)", minval=0.1, group=grpE,
+     tooltip="2.0 takes profit at twice the risk. Trend systems need R above 1 to survive a sub-50% hit rate.")
+maxBars     = input.int(20, "Max bars in trade", minval=1, group=grpE,
+     tooltip="Theta makes time the enemy. Options need the move to happen fast - stale directional trades bleed out.")
+exitOnCross = input.bool(true, "Exit on opposite MACD cross", group=grpE)
+
+grpD = "Direction"
+allowLong  = input.bool(true, "Take bullish signals (calls)", group=grpD)
+allowShort = input.bool(true, "Take bearish signals (puts)",  group=grpD)
+
+showStats = input.bool(true, "Show stats panel", group="Display")
+
+// ------------------------------------------------------------ INDICATORS ---
+[macdLine, sigLine, histLine] = ta.macd(close, fastLen, slowLen, sigLen)
+trendMA = ta.sma(close, trendLen)
+[diPlus, diMinus, adxVal] = ta.dmi(adxLen, adxLen)
+atrVal = ta.atr(atrLen)
+
+// IV rank: percentile rank of a volatility proxy over the lookback window.
+ivRaw = request.security(ivSymbol, timeframe.period, close,
+     lookahead = barmerge.lookahead_off, ignore_invalid_symbol = true)
+
+// Fall back to annualised realised volatility when the proxy is unavailable.
+logRet      = math.log(close / close[1])
+realisedVol = ta.stdev(logRet, 20) * math.sqrt(252) * 100
+volSeries   = na(ivRaw) ? realisedVol : ivRaw
+ivRank      = ta.percentrank(volSeries, ivLen)
+
+// ------------------------------------------------------------ CONDITIONS ---
+crossUp   = ta.crossover(macdLine, sigLine)
+crossDown = ta.crossunder(macdLine, sigLine)
+
+zeroOkLong  = not requireZero or macdLine > 0
+zeroOkShort = not requireZero or macdLine < 0
+
+trendOkLong  = not useTrend or close > trendMA
+trendOkShort = not useTrend or close < trendMA
+
+adxOk = not useAdx or adxVal > adxMin
+
+buyingPremium = ivMode == "Buy premium (long options)"
+ivPass        = buyingPremium ? ivRank <= ivBuyMax : ivRank >= ivSellMin
+ivSkip        = not useIv or na(ivRank)
+ivOk          = ivSkip or ivPass
+
+longSignal  = allowLong  and crossUp   and zeroOkLong  and trendOkLong  and adxOk and ivOk
+shortSignal = allowShort and crossDown and zeroOkShort and trendOkShort and adxOk and ivOk
+
+// ----------------------------------------------------------------- ORDERS ---
+// Risk is locked at entry. Recomputing it from live ATR every bar would let the
+// stop drift, which makes the R multiple - and therefore the whole win-rate and
+// payoff reading - meaningless.
+var float lockedRisk = na
+
+if longSignal and strategy.position_size <= 0
+    lockedRisk := atrVal * stopMult
+    strategy.entry("Long", strategy.long)
+
+if shortSignal and strategy.position_size >= 0
+    lockedRisk := atrVal * stopMult
+    strategy.entry("Short", strategy.short)
+
+if strategy.position_size > 0 and not na(lockedRisk)
+    entryPx = strategy.opentrades.entry_price(strategy.opentrades - 1)
+    strategy.exit("L-exit", from_entry = "Long",
+         stop  = entryPx - lockedRisk,
+         limit = entryPx + lockedRisk * targetR)
+
+if strategy.position_size < 0 and not na(lockedRisk)
+    entryPx = strategy.opentrades.entry_price(strategy.opentrades - 1)
+    strategy.exit("S-exit", from_entry = "Short",
+         stop  = entryPx + lockedRisk,
+         limit = entryPx - lockedRisk * targetR)
+
+// Time stop - the option-specific exit. Theta does not care that you are right.
+entryBar = strategy.opentrades > 0 ? strategy.opentrades.entry_bar_index(strategy.opentrades - 1) : bar_index
+barsHeld = bar_index - entryBar
+
+if strategy.position_size != 0 and barsHeld >= maxBars
+    strategy.close_all(comment = "Time stop")
+
+if exitOnCross and strategy.position_size > 0 and crossDown
+    strategy.close("Long", comment = "Opp cross")
+
+if exitOnCross and strategy.position_size < 0 and crossUp
+    strategy.close("Short", comment = "Opp cross")
+
+// ------------------------------------------------------------------ PLOTS ---
+plot(useTrend ? trendMA : na, "Trend MA", color.new(color.orange, 0), 2)
+
+plotshape(longSignal,  "Long entry",  shape.triangleup,   location.belowbar,
+     color.new(color.teal, 0),   size = size.small)
+plotshape(shortSignal, "Short entry", shape.triangledown, location.abovebar,
+     color.new(color.maroon, 0), size = size.small)
+
+alertcondition(longSignal,  "MACD Long (calls)", "Bullish MACD cross - all filters passed")
+alertcondition(shortSignal, "MACD Short (puts)", "Bearish MACD cross - all filters passed")
+
+// ------------------------------------------------------------- STATS PANEL ---
+// Win rate alone is meaningless. Profit factor and expectancy decide whether
+// the system makes money. A 70% win rate at 0.5 profit factor is a losing
+// strategy that feels like a winning one.
+var table t = table.new(position.top_right, 2, 8,
+     border_width = 1, frame_width = 1, frame_color = color.gray)
+
+if barstate.islast and showStats
+    closed  = strategy.closedtrades
+    wins    = strategy.wintrades
+    losses  = strategy.losstrades
+    wr      = closed > 0 ? wins / closed * 100 : 0.0
+    gp      = strategy.grossprofit
+    gl      = strategy.grossloss
+    pf      = gl > 0 ? gp / gl : na
+    expect  = closed > 0 ? strategy.netprofit / closed : 0.0
+    avgWin  = wins   > 0 ? gp / wins   : 0.0
+    avgLoss = losses > 0 ? gl / losses : 0.0
+
+    // How far the underlying must travel to reach target. Sanity-check this
+    // against the premium you are paying - a 1% target move will not cover a
+    // 5% option premium.
+    tgtMovePct = close > 0 and not na(lockedRisk) ? lockedRisk * targetR / close * 100 : 0.0
+
+    pfCol = na(pf) ? color.gray : pf >= 1.3 ? color.teal : pf >= 1.0 ? color.orange : color.maroon
+
+    table.cell(t, 0, 0, "Signal stats", text_color = color.white, bgcolor = color.new(color.blue, 20))
+    table.cell(t, 1, 0, "",             text_color = color.white, bgcolor = color.new(color.blue, 20))
+    table.cell(t, 0, 1, "Trades")
+    table.cell(t, 1, 1, str.tostring(closed))
+    table.cell(t, 0, 2, "Win rate")
+    table.cell(t, 1, 2, str.tostring(wr, "#.#") + "%")
+    table.cell(t, 0, 3, "Profit factor")
+    table.cell(t, 1, 3, na(pf) ? "n/a" : str.tostring(pf, "#.##"), text_color = pfCol)
+    table.cell(t, 0, 4, "Expectancy/trade")
+    table.cell(t, 1, 4, str.tostring(expect, "#.##"))
+    table.cell(t, 0, 5, "Avg win / loss")
+    table.cell(t, 1, 5, str.tostring(avgWin, "#") + " / " + str.tostring(avgLoss, "#"))
+    table.cell(t, 0, 6, "Max drawdown")
+    table.cell(t, 1, 6, str.tostring(strategy.max_drawdown, "#.#"))
+    table.cell(t, 0, 7, "Target move")
+    table.cell(t, 1, 7, str.tostring(tgtMovePct, "#.#") + "%")
