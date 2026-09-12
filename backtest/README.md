@@ -31,3 +31,26 @@ Where daily bars leave a result ambiguous, the pessimistic branch is taken:
   collect MORE credit than modelled, so credit-spread results here are likely
   conservative.
 - No early assignment modelling.
+
+## Calibration to real chains
+
+`calibrated.py` replaces the modelled option assumptions with parameters
+measured from real Alpha Vantage chains (13 sampled 30-delta contracts,
+25-60 DTE, across calm and stressed regimes):
+
+| regime | IV / trailing 20d RV | bid-ask (% of mark) |
+|--------|---------------------|---------------------|
+| calm   | 1.51x               | 3.4%                |
+| stress | 0.84x               | 12.2%               |
+
+Both are interpolated on the realised-vol percentile. This matters: signals
+that enter in quiet markets buy where the variance risk premium is richest,
+which a flat assumption conceals. Calibration cut the volatility-contraction
+signal from PF 2.54 to 1.40.
+
+## Result
+
+No directional indicator tested beat blind calendar entry. MACD beat it on
+3 of 12 names. The long-option profit that survives calibration is drift:
+blind calls PF 1.60, blind puts PF 0.90, over a period in which all 12
+underlyings except F rose.
