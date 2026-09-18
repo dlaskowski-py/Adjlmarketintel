@@ -56,7 +56,7 @@
 // pane it would flatten the chart. Entry/exit markers are pushed to the price
 // pane individually with force_overlay, so signals stay visible where they
 // matter while the equity curve keeps its own scale.
-indicator("Synthetic Options Engine v7", overlay = false, max_labels_count = 500)
+indicator("Synthetic Options Engine v7.2", overlay = false, max_labels_count = 500)
 
 // ---------------------------------------------------------------- INPUTS ---
 grpS = "Signal"
@@ -440,12 +440,28 @@ putTxt  = markText == "CALL / PUT" ? "BUY PUT"  : markText == "C / P" ? "P" : ""
 CALL_COL = #00E5A0
 PUT_COL  = #FF5C5C
 
-plotshape(showMarks and tookLong, "CALL entry", shape.labelup, location.belowbar,
-     color = CALL_COL, text = callTxt, textcolor = color.black,
-     size = mSize, force_overlay = true)
-plotshape(showMarks and tookShort, "PUT entry", shape.labeldown, location.abovebar,
-     color = PUT_COL, text = putTxt, textcolor = color.black,
-     size = mSize, force_overlay = true)
+// Two layers, deliberately.
+//
+// plotshape cannot take dynamic text or size - both must be const strings, and
+// ours come from inputs. So the wordy marker is drawn with label.new, which
+// does accept series values. Labels are capped (most recent 500 draw), so a
+// plain const-text triangle sits underneath as an uncapped base layer: on a
+// very long history the old BUY CALL wording drops off but the triangle never
+// does. Backtest statistics are unaffected either way - this is drawing only.
+plotshape(showMarks and tookLong, "CALL entry", shape.triangleup, location.belowbar,
+     color = CALL_COL, size = size.tiny, force_overlay = true)
+plotshape(showMarks and tookShort, "PUT entry", shape.triangledown, location.abovebar,
+     color = PUT_COL, size = size.tiny, force_overlay = true)
+
+if showMarks and tookLong
+    txt = callTxt + (showLabels ? "\n" + str.tostring(markStrike, "#.##") + "  $" + str.tostring(markPrem, "#.##") : "")
+    label.new(bar_index, low, text = txt, style = label.style_label_up, size = mSize,
+         color = CALL_COL, textcolor = color.black, force_overlay = true)
+
+if showMarks and tookShort
+    txt = putTxt + (showLabels ? "\n" + str.tostring(markStrike, "#.##") + "  $" + str.tostring(markPrem, "#.##") : "")
+    label.new(bar_index, high, text = txt, style = label.style_label_down, size = mSize,
+         color = PUT_COL, textcolor = color.black, force_overlay = true)
 
 plotshape(showMarks and not na(tradeRet) and tradeRet > 0, "Exit win", shape.xcross,
      location.abovebar, color = color.new(CALL_COL, 25), size = size.small, force_overlay = true)
