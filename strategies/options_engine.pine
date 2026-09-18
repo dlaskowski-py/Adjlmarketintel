@@ -184,18 +184,21 @@ strikeForDelta(S, T, sig, r, target, isCall) =>
 // it by 120% on weekly, which misprices every contract before anything else
 // happens.
 secPerBar   = timeframe.in_seconds()
-barsPerYear = timeframe.isintraday ? 252.0 * 23400.0 / secPerBar
-            : timeframe.isdaily    ? 252.0
-            : timeframe.isweekly   ? 52.0
-            : 12.0
+// Split across statements rather than wrapped: Pine treats a continuation
+// line indented by a multiple of four as a new code block, which is a compile
+// error, so avoiding the wrap entirely is safer than counting spaces.
+bpyIntraday = 252.0 * 23400.0 / secPerBar
+bpyHigher   = timeframe.isdaily ? 252.0 : timeframe.isweekly ? 52.0 : 12.0
+barsPerYear = timeframe.isintraday ? bpyIntraday : bpyHigher
 annFactor = math.sqrt(barsPerYear)
 
 logRet  = math.log(close / close[1])
 realVol = ta.stdev(logRet, 20) * annFactor
 volRank = ta.percentrank(realVol, 252)
-trendMA = trendTyp == "EMA" ? ta.ema(close, trendLen)
-        : trendTyp == "WMA" ? ta.wma(close, trendLen)
-        : ta.sma(close, trendLen)
+maEma = ta.ema(close, trendLen)
+maWma = ta.wma(close, trendLen)
+maSma = ta.sma(close, trendLen)
+trendMA = trendTyp == "EMA" ? maEma : trendTyp == "WMA" ? maWma : maSma
 
 // The calibration below was measured against daily bars and 25-60 DTE
 // contracts. The maths is now timeframe-correct, but the 1.51x/0.84x ratios
