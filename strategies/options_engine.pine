@@ -38,7 +38,11 @@
 // Treat its output as a ranking of signals, never as position sizing.
 // ============================================================================
 
-indicator("Synthetic Options Engine v2", overlay = false)
+// overlay=false because the equity curve runs in the thousands - on the price
+// pane it would flatten the chart. Entry/exit markers are pushed to the price
+// pane individually with force_overlay, so signals stay visible where they
+// matter while the equity curve keeps its own scale.
+indicator("Synthetic Options Engine v3", overlay = false, max_labels_count = 500)
 
 // ---------------------------------------------------------------- INPUTS ---
 grpS = "Signal"
@@ -67,6 +71,11 @@ ivCalm    = input.float(1.51, "IV/RV ratio - calm",   minval=0.1, step=0.01, gro
 ivStress  = input.float(0.84, "IV/RV ratio - stress", minval=0.1, step=0.01, group=grpC)
 sprCalm   = input.float(3.4,  "Bid-ask % - calm",     minval=0.0, step=0.1,  group=grpC)
 sprStress = input.float(12.2, "Bid-ask % - stress",   minval=0.0, step=0.1,  group=grpC)
+
+grpV = "Chart markers"
+showMarks  = input.bool(true,  "Show entry/exit markers on price", group=grpV)
+showLabels = input.bool(false, "Label entries with strike and premium", group=grpV,
+     tooltip="Detail per trade. Off by default - on a long history it clutters the chart.")
 
 startCap = input.float(10000, "Starting capital", minval=100, group="Account")
 riskPct  = input.float(2.0, "Capital per trade %", minval=0.1, maxval=100, group="Account")
@@ -199,6 +208,14 @@ var float grossLos = 0.0
 
 isSpread = structure == "Credit spread"
 
+// Markers reflect trades the engine ACTUALLY TOOK, not every time a signal
+// fired. A signal arriving while a position is already open is ignored by the
+// engine, and drawing it would show entries that never happened.
+bool tookLong  = false
+bool tookShort = false
+float markStrike = na
+float markPrem   = na
+
 if not inTrade and (longSig or shortSig) and not na(realVol) and bar_index > 260
     dirLong = longSig
     T0 = dte / 365.0
@@ -218,6 +235,10 @@ if not inTrade and (longSig or shortSig) and not na(realVol) and bar_index > 260
             isCredit  := true
             inTrade   := true
             entryBar  := bar_index
+            tookLong  := dirLong
+            tookShort := not dirLong
+            markStrike := kShort
+            markPrem   := entryVal
     else
         optIsCall := dirLong
         kShort := strikeForDelta(close, T0, sigEnt, rf, tgtDelta, dirLong)
@@ -228,6 +249,10 @@ if not inTrade and (longSig or shortSig) and not na(realVol) and bar_index > 260
             isCredit  := false
             inTrade   := true
             entryBar  := bar_index
+            tookLong  := dirLong
+            tookShort := not dirLong
+            markStrike := kShort
+            markPrem   := entryVal
 
 float tradeRet = na
 
@@ -268,8 +293,34 @@ if inTrade and (bar_index - entryBar) >= 1
         inTrade := false
 
 // ----------------------------------------------------------------- PLOTS ---
+// Equity curve stays in this pane, on its own scale.
 plot(equity, "Equity", color.new(color.teal, 0), 2)
 hline(startCap, "Start", color.new(color.gray, 50), hline.style_dashed)
+
+// Entry and exit markers are forced onto the PRICE pane. These mark trades the
+// engine actually opened and closed - not raw signal fires.
+plotshape(showMarks and tookLong,  "Call entry", shape.triangleup,   location.belowbar,
+     color.new(color.teal, 0),   text = "C", textcolor = color.new(color.teal, 0),
+     size = size.tiny, force_overlay = true)
+plotshape(showMarks and tookShort, "Put entry",  shape.triangledown, location.abovebar,
+     color.new(color.orange, 0), text = "P", textcolor = color.new(color.orange, 0),
+     size = size.tiny, force_overlay = true)
+plotshape(showMarks and not na(tradeRet) and tradeRet > 0,  "Exit win",  shape.xcross,
+     location.abovebar, color.new(color.teal, 30),   size = size.tiny, force_overlay = true)
+plotshape(showMarks and not na(tradeRet) and tradeRet <= 0, "Exit loss", shape.xcross,
+     location.abovebar, color.new(color.maroon, 30), size = size.tiny, force_overlay = true)
+
+// Shade the price pane while a contract is open, so holding periods are legible.
+bgcolor(showMarks and inTrade ? color.new(color.blue, 93) : na, force_overlay = true)
+
+if showLabels and (tookLong or tookShort)
+    label.new(bar_index, low, force_overlay = true,
+         text  = (tookLong ? "C " : "P ") + str.tostring(markStrike, "#.##") + "\n$" + str.tostring(markPrem, "#.##"),
+         style = label.style_label_up, size = size.tiny,
+         color = color.new(tookLong ? color.teal : color.orange, 75),
+         textcolor = color.white)
+
+// Win/loss ticks on the equity pane itself.
 plotchar(not na(tradeRet) and tradeRet > 0,  "win",  "▲", location.bottom, color.new(color.teal, 40),   size=size.tiny)
 plotchar(not na(tradeRet) and tradeRet <= 0, "loss", "▼", location.top,    color.new(color.maroon, 40), size=size.tiny)
 
