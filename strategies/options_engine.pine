@@ -7,8 +7,22 @@
 // ever trade the chart's instrument, never a contract.
 //
 // THE CONTROL IS THE POINT. "Blind (every N bars)" ignores price entirely.
-// Any signal worth trading must beat it. Across 26 years, 12 names and two
-// option structures, none of these did. Run Blind before trusting anything.
+// Any signal worth trading must beat it. SEVEN signals have now been measured
+// against it across 26 years and 12 names, and none has beaten it:
+//
+//   signal              structure   PF    vs blind
+//   MACD cross          long 30d   1.33   loses (blind 1.60)
+//   RSI(2)              long 30d   1.36   loses
+//   Donchian-55         long 30d   1.48   loses
+//   EMA 20/50           long 30d   1.32   loses
+//   Vol contraction     long 30d   1.40   loses
+//   Squeeze release     strangle   1.62   ties  (blind 1.60, t=0.57)
+//   Squeeze + low IV    strangle   1.40   loses
+//
+// The squeeze tie is not an edge: t = 0.57, and it wins two of four eras and
+// loses the other two. Splitting the strangle shows why nothing here works -
+// the CALL leg runs PF 1.56 while the PUT leg runs 1.08. Even the
+// direction-neutral structure is mostly just owning calls in a rising market.
 //
 // Set Blind direction to "Short only" on a rising chart: if long-only prints
 // and short-only bleeds, what you are looking at is drift, not edge.
@@ -42,13 +56,14 @@
 // pane it would flatten the chart. Entry/exit markers are pushed to the price
 // pane individually with force_overlay, so signals stay visible where they
 // matter while the equity curve keeps its own scale.
-indicator("Synthetic Options Engine v5", overlay = false, max_labels_count = 500)
+indicator("Synthetic Options Engine v6", overlay = false, max_labels_count = 500)
 
 // ---------------------------------------------------------------- INPUTS ---
 grpS = "Signal"
 sigName = input.string("MACD cross + trend", "Signal", group=grpS,
      options=["MACD cross + trend", "RSI(2) mean reversion", "Donchian breakout",
-              "EMA cross", "Volatility contraction", "Blind (every N bars)"])
+              "EMA cross", "Volatility contraction", "Squeeze release",
+              "Squeeze + low IV", "ATR contraction", "Blind (every N bars)"])
 useTrend = input.bool(true, "Trend filter", group=grpS)
 
 grpA = "Averages"
@@ -62,12 +77,21 @@ emaFastL = input.int(20, "EMA cross fast", minval=1, group=grpA)
 emaSlowL = input.int(50, "EMA cross slow", minval=2, group=grpA)
 donLen   = input.int(55, "Donchian lookback", minval=2, group=grpA)
 showMA   = input.bool(true, "Plot trend MA on price", group=grpA)
+
+grpQ = "Volatility signals"
+sqLen    = input.int(20,  "Squeeze length", minval=2, group=grpQ)
+sqBB     = input.float(2.0, "Bollinger mult", minval=0.1, step=0.1, group=grpQ)
+sqKC     = input.float(1.5, "Keltner mult",   minval=0.1, step=0.1, group=grpQ)
+ivMaxIn  = input.float(30.0, "Max IV rank for 'Squeeze + low IV'", minval=1, maxval=100, group=grpQ)
+atrPct   = input.float(15.0, "ATR-contraction percentile", minval=1, maxval=100, group=grpQ)
 blindN   = input.int(20, "Blind: bars between entries", minval=1, group=grpS)
 blindDir = input.string("Long only", "Blind direction", options=["Long only","Short only","Alternate"], group=grpS,
      tooltip="Long-only blind on a rising chart is pure beta. Run Short-only to see how much apparent edge is just drift.")
 
 grpO = "Contract"
-structure = input.string("Long option", "Structure", options=["Long option","Credit spread"], group=grpO)
+structure = input.string("Long option", "Structure",
+     options=["Long option","Credit spread","Long straddle","Long strangle"], group=grpO,
+     tooltip="Straddle and strangle are DIRECTION-NEUTRAL - they pay on a large move either way, so the signal's direction is ignored.")
 tgtDelta  = input.float(0.30, "Target delta", minval=0.05, maxval=0.95, step=0.05, group=grpO)
 dte       = input.int(45, "Days to expiry at entry", minval=5, group=grpO)
 widthPct  = input.float(1.5, "Spread width (% of spot)", minval=0.1, step=0.1, group=grpO)
@@ -188,6 +212,18 @@ emaS  = ta.ema(close, emaSlowL)
 donHi = ta.highest(high, donLen)[1]
 donLo = ta.lowest(low, donLen)[1]
 
+// TTM-style squeeze: Bollinger Bands inside Keltner Channels means volatility
+// is compressed. The tradeable event is the RELEASE, not the compression.
+bbBasis = ta.sma(close, sqLen)
+bbDev   = sqBB * ta.stdev(close, sqLen)
+kcMA    = ta.ema(close, sqLen)
+kcRange = sqKC * ta.atr(sqLen)
+squeezeOn    = (bbBasis - bbDev) > (kcMA - kcRange) and (bbBasis + bbDev) < (kcMA + kcRange)
+squeezeFired = squeezeOn[1] and not squeezeOn
+
+atrRel  = ta.atr(14) / close
+atrRank = ta.percentrank(atrRel, 252)
+
 bool rawL = false
 bool rawS = false
 if sigName == "MACD cross + trend"
@@ -206,6 +242,17 @@ else if sigName == "Volatility contraction"
     cheap = not na(volRank) and volRank < 20
     rawL := cheap and close > trendMA
     rawS := cheap and close <= trendMA
+else if sigName == "Squeeze release"
+    rawL := squeezeFired and close > trendMA
+    rawS := squeezeFired and close <= trendMA
+else if sigName == "Squeeze + low IV"
+    ok = squeezeFired and not na(volRank) and volRank < ivMaxIn
+    rawL := ok and close > trendMA
+    rawS := ok and close <= trendMA
+else if sigName == "ATR contraction"
+    tight = not na(atrRank) and atrRank < atrPct
+    rawL := tight and close > trendMA
+    rawS := tight and close <= trendMA
 else
     fire = bar_index % blindN == 0
     goLong = blindDir == "Long only" ? true : blindDir == "Short only" ? false : (math.floor(bar_index / blindN) % 2 == 0)
@@ -241,7 +288,10 @@ var int   nWins    = 0
 var float grossWin = 0.0
 var float grossLos = 0.0
 
-isSpread = structure == "Credit spread"
+isSpread  = structure == "Credit spread"
+isStrad   = structure == "Long straddle"
+isStrang  = structure == "Long strangle"
+isNeutral = isStrad or isStrang   // direction of the signal is irrelevant
 
 // Markers reflect trades the engine ACTUALLY TOOK, not every time a signal
 // fired. A signal arriving while a position is already open is ignored by the
@@ -251,7 +301,10 @@ bool tookShort = false
 float markStrike = na
 float markPrem   = na
 
-if not inTrade and (longSig or shortSig) and not na(realVol) and bar_index > 260
+// Neutral structures take the signal whichever way it points.
+fireEntry = isNeutral ? (rawL or rawS) : (longSig or shortSig)
+
+if not inTrade and fireEntry and not na(realVol) and bar_index > 260
     dirLong = longSig
     T0 = dte / 365.0
     sigEnt := sigmaNow
@@ -274,6 +327,23 @@ if not inTrade and (longSig or shortSig) and not na(realVol) and bar_index > 260
             posLong   := dirLong
             tookLong  := dirLong
             tookShort := not dirLong
+            markStrike := kShort
+            markPrem   := entryVal
+    else if isNeutral
+        // Long call + long put. Same strike for a straddle, symmetric OTM
+        // strikes for a strangle. No direction call is made at all.
+        kShort := isStrad ? close : strikeForDelta(close, T0, sigEnt, rf, tgtDelta, true)
+        kLong  := isStrad ? close : strikeForDelta(close, T0, sigEnt, rf, tgtDelta, false)
+        cost = bsPrice(close, kShort, T0, sigEnt, rf, true) + bsPrice(close, kLong, T0, sigEnt, rf, false)
+        if cost > 0.01
+            entryVal  := cost * (1.0 + spreadPct / 2.0)
+            capAtRisk := entryVal
+            isCredit  := false
+            inTrade   := true
+            entryBar  := bar_index
+            entryTime := time
+            posLong   := true
+            tookLong  := true
             markStrike := kShort
             markPrem   := entryVal
     else
@@ -311,6 +381,8 @@ if inTrade and (bar_index - entryBar) >= 1
     float nowVal = 0.0
     if isCredit
         nowVal := bsPrice(close, kShort, Tk, sigExit, rf, optIsCall) - bsPrice(close, kLong, Tk, sigExit, rf, optIsCall)
+    else if isNeutral
+        nowVal := bsPrice(close, kShort, Tk, sigExit, rf, true) + bsPrice(close, kLong, Tk, sigExit, rf, false)
     else
         nowVal := bsPrice(close, kShort, Tk, sigExit, rf, optIsCall)
 
@@ -395,7 +467,7 @@ if barstate.islast
     hdr   = isBlind ? color.purple : color.blue
 
     table.cell(t, 0, 0, isBlind ? "CONTROL - blind" : "Options engine", text_color=color.white, bgcolor=color.new(hdr, 20))
-    table.cell(t, 1, 0, isSpread ? "credit" : "long", text_color=color.white, bgcolor=color.new(hdr, 20))
+    table.cell(t, 1, 0, isSpread ? "credit" : isStrad ? "straddle" : isStrang ? "strangle" : "long", text_color=color.white, bgcolor=color.new(hdr, 20))
     table.cell(t, 0, 1, "Profit factor")
     table.cell(t, 1, 1, na(pf) ? "n/a" : str.tostring(pf, "#.##"), text_color=pfCol)
     table.cell(t, 0, 2, "Expectancy/trade")
