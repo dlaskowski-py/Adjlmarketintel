@@ -42,7 +42,7 @@
 // pane it would flatten the chart. Entry/exit markers are pushed to the price
 // pane individually with force_overlay, so signals stay visible where they
 // matter while the equity curve keeps its own scale.
-indicator("Synthetic Options Engine v3", overlay = false, max_labels_count = 500)
+indicator("Synthetic Options Engine v4", overlay = false, max_labels_count = 500)
 
 // ---------------------------------------------------------------- INPUTS ---
 grpS = "Signal"
@@ -136,10 +136,26 @@ strikeForDelta(S, T, sig, r, target, isCall) =>
     (lo + hi) / 2.0
 
 // --------------------------------------------------------- MARKET STATE ---
+// Annualisation must match the chart's timeframe. Hardcoding sqrt(252) - the
+// daily figure - understates volatility by 61% on hourly bars and overstates
+// it by 120% on weekly, which misprices every contract before anything else
+// happens.
+secPerBar   = timeframe.in_seconds()
+barsPerYear = timeframe.isintraday ? 252.0 * 23400.0 / secPerBar
+            : timeframe.isdaily    ? 252.0
+            : timeframe.isweekly   ? 52.0
+            : 12.0
+annFactor = math.sqrt(barsPerYear)
+
 logRet  = math.log(close / close[1])
-realVol = ta.stdev(logRet, 20) * math.sqrt(252)
+realVol = ta.stdev(logRet, 20) * annFactor
 volRank = ta.percentrank(realVol, 252)
 trendMA = ta.sma(close, 200)
+
+// The calibration below was measured against daily bars and 25-60 DTE
+// contracts. The maths is now timeframe-correct, but the 1.51x/0.84x ratios
+// themselves are not re-measured for other timeframes.
+isDaily = timeframe.isdaily
 
 w = na(volRank) ? 0.5 : math.min(math.max(volRank / 100.0, 0.0), 1.0)
 ivRatio   = ivCalm + (ivStress - ivCalm) * w
@@ -192,6 +208,7 @@ var float peakEq    = startCap
 var float maxDD     = 0.0
 var bool  inTrade   = false
 var int   entryBar  = 0
+var int   entryTime = 0      // v4: wall-clock entry, for calendar-day decay
 var float kShort    = 0.0
 var float kLong     = 0.0
 var float entryVal  = 0.0      // premium paid, or net credit received
@@ -235,6 +252,7 @@ if not inTrade and (longSig or shortSig) and not na(realVol) and bar_index > 260
             isCredit  := true
             inTrade   := true
             entryBar  := bar_index
+            entryTime := time
             tookLong  := dirLong
             tookShort := not dirLong
             markStrike := kShort
@@ -249,6 +267,7 @@ if not inTrade and (longSig or shortSig) and not na(realVol) and bar_index > 260
             isCredit  := false
             inTrade   := true
             entryBar  := bar_index
+            entryTime := time
             tookLong  := dirLong
             tookShort := not dirLong
             markStrike := kShort
@@ -259,8 +278,11 @@ float tradeRet = na
 // v2: held >= 1 - never evaluate an exit on the entry bar, where the position
 // shows a loss equal to the spread and a tight stop would fire instantly.
 if inTrade and (bar_index - entryBar) >= 1
-    held = bar_index - entryBar
-    Tk = math.max((dte - held) / 365.0, 1.0 / 365.0)
+    barsHeld = bar_index - entryBar
+    // Options decay in CALENDAR time, so measure it in calendar time. Counting
+    // bars treats 20 hourly bars (about 3 real days) as 20 days of theta.
+    daysHeld = (time - entryTime) / 86400000.0
+    Tk = math.max((dte - daysHeld) / 365.0, 1.0 / 365.0)
     // Exit IV follows the REGIME, never the realised move - marking a winner at
     // post-move realised vol would double-count the very move being measured.
     // Divide out the ENTRY ratio before applying the current one.
@@ -276,7 +298,7 @@ if inTrade and (bar_index - entryBar) >= 1
                          : nowVal * (1.0 - spreadPct / 2.0) - entryVal
     float pctOfEntry = 100.0 * pnl / entryVal
 
-    bool doExit = pctOfEntry >= tpPct or pctOfEntry <= -slPct or held >= holdBars
+    bool doExit = pctOfEntry >= tpPct or pctOfEntry <= -slPct or barsHeld >= holdBars or daysHeld >= dte
 
     if doExit
         retPct = 100.0 * pnl / capAtRisk
@@ -328,7 +350,7 @@ plotchar(not na(tradeRet) and tradeRet <= 0, "loss", "▼", location.top,    col
 // Profit factor and expectancy sit above win rate deliberately. A 70% win rate
 // with PF 0.92 is a losing strategy that feels like a winning one, and that
 // exact pairing turned up repeatedly in testing.
-var table t = table.new(position.top_right, 2, 10, border_width=1, frame_width=1, frame_color=color.gray)
+var table t = table.new(position.top_right, 2, 11, border_width=1, frame_width=1, frame_color=color.gray)
 
 if barstate.islast
     pf = grossLos > 0 ? grossWin / grossLos : na
@@ -362,3 +384,6 @@ if barstate.islast
     table.cell(t, 1, 8, str.tostring(sigmaNow * 100, "#.#") + "% / " + str.tostring(spreadPct * 100, "#.#") + "%")
     table.cell(t, 0, 9, nTrades < 30 ? "TOO FEW TRADES" : "sample ok")
     table.cell(t, 1, 9, nTrades < 30 ? "not conclusive" : "", text_color=nCol)
+    table.cell(t, 0, 10, "Timeframe")
+    table.cell(t, 1, 10, isDaily ? "daily (calibrated)" : timeframe.period + " (uncalibrated)",
+         text_color = isDaily ? color.gray : color.orange)
