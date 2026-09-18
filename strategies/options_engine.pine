@@ -56,7 +56,7 @@
 // pane it would flatten the chart. Entry/exit markers are pushed to the price
 // pane individually with force_overlay, so signals stay visible where they
 // matter while the equity curve keeps its own scale.
-indicator("Synthetic Options Engine v6", overlay = false, max_labels_count = 500)
+indicator("Synthetic Options Engine v7", overlay = false, max_labels_count = 500)
 
 // ---------------------------------------------------------------- INPUTS ---
 grpS = "Signal"
@@ -113,6 +113,10 @@ showMarks  = input.bool(true,  "Show entry/exit markers on price", group=grpV)
 markSizeIn = input.string("Normal", "Marker size", options=["Tiny","Small","Normal","Large"], group=grpV)
 markText   = input.string("CALL / PUT", "Marker text", options=["CALL / PUT","C / P","None"], group=grpV)
 shadeHold  = input.bool(true, "Shade holding period by direction", group=grpV)
+showStatus = input.bool(true, "Live status banner", group=grpV,
+     tooltip="Bottom-left readout: flat or holding, which way, how many days in, current P&L, days until the time stop.")
+showExitLb = input.bool(true, "Label exits with P&L", group=grpV)
+showEntryLn= input.bool(true, "Draw entry price line while holding", group=grpV)
 showLabels = input.bool(false, "Label entries with strike and premium", group=grpV,
      tooltip="Detail per trade. Off by default - on a long history it clutters the chart.")
 
@@ -280,6 +284,9 @@ var float sigEnt    = 0.0
 var float ivRatEnt  = 1.0      // v2: regime ratio AT ENTRY, needed to reprice
 var bool  optIsCall = true
 var bool  posLong   = true      // direction of the OPEN position, for shading
+var float entryUnder = 0.0      // underlying price at entry, for the price line
+var float curPnlPct  = 0.0      // live P&L as % of premium, for the banner
+var int   curDays    = 0        // calendar days held, for the banner
 var bool  isCredit  = false
 var float capAtRisk = 0.0
 
@@ -324,6 +331,7 @@ if not inTrade and fireEntry and not na(realVol) and bar_index > 260
             inTrade   := true
             entryBar  := bar_index
             entryTime := time
+            entryUnder := close
             posLong   := dirLong
             tookLong  := dirLong
             tookShort := not dirLong
@@ -342,6 +350,7 @@ if not inTrade and fireEntry and not na(realVol) and bar_index > 260
             inTrade   := true
             entryBar  := bar_index
             entryTime := time
+            entryUnder := close
             posLong   := true
             tookLong  := true
             markStrike := kShort
@@ -357,6 +366,7 @@ if not inTrade and fireEntry and not na(realVol) and bar_index > 260
             inTrade   := true
             entryBar  := bar_index
             entryTime := time
+            entryUnder := close
             posLong   := dirLong
             tookLong  := dirLong
             tookShort := not dirLong
@@ -389,6 +399,8 @@ if inTrade and (bar_index - entryBar) >= 1
     float pnl = isCredit ? entryVal - nowVal * (1.0 + spreadPct / 2.0)
                          : nowVal * (1.0 - spreadPct / 2.0) - entryVal
     float pctOfEntry = 100.0 * pnl / entryVal
+    curPnlPct := pctOfEntry
+    curDays   := int(daysHeld)
 
     bool doExit = pctOfEntry >= tpPct or pctOfEntry <= -slPct or barsHeld >= holdBars or daysHeld >= dte
 
@@ -405,6 +417,8 @@ if inTrade and (bar_index - entryBar) >= 1
         else
             grossLos += math.abs(retPct)
         inTrade := false
+        curPnlPct := 0.0
+        curDays := 0
 
 // ----------------------------------------------------------------- PLOTS ---
 // Equity curve stays in this pane, on its own scale.
@@ -417,8 +431,8 @@ hline(startCap, "Start", color.new(color.gray, 50), hline.style_dashed)
 // would show entries that never happened.
 mSize = markSizeIn == "Tiny" ? size.tiny : markSizeIn == "Small" ? size.small
       : markSizeIn == "Large" ? size.large : size.normal
-callTxt = markText == "CALL / PUT" ? "CALL" : markText == "C / P" ? "C" : ""
-putTxt  = markText == "CALL / PUT" ? "PUT"  : markText == "C / P" ? "P" : ""
+callTxt = markText == "CALL / PUT" ? "BUY CALL" : markText == "C / P" ? "C" : ""
+putTxt  = markText == "CALL / PUT" ? "BUY PUT"  : markText == "C / P" ? "P" : ""
 
 CALL_COL = #00E5A0
 PUT_COL  = #FF5C5C
@@ -440,6 +454,19 @@ plotshape(showMarks and not na(tradeRet) and tradeRet <= 0, "Exit loss", shape.x
 bgcolor(shadeHold and inTrade ? color.new(posLong ? CALL_COL : PUT_COL, 90) : na, force_overlay = true)
 
 plot(showMA ? trendMA : na, "Trend MA", color.new(color.orange, 20), 2, force_overlay = true)
+
+// Exit labels spell out the result rather than leaving a bare cross to read.
+if showExitLb and not na(tradeRet)
+    label.new(bar_index, high, force_overlay = true,
+         text  = "CLOSE " + (tradeRet > 0 ? "+" : "") + str.tostring(tradeRet, "#.#") + "%",
+         style = label.style_label_down, size = size.small,
+         color = color.new(tradeRet > 0 ? CALL_COL : PUT_COL, 20),
+         textcolor = color.black)
+
+// Entry price line makes the position's basis obvious at a glance.
+plot(showEntryLn and inTrade ? entryUnder : na, "Entry price",
+     color = color.new(posLong ? CALL_COL : PUT_COL, 30), linewidth = 1,
+     style = plot.style_linebr, force_overlay = true)
 
 alertcondition(tookLong,  "CALL entry", "Options engine opened a CALL position")
 alertcondition(tookShort, "PUT entry",  "Options engine opened a PUT position")
@@ -489,3 +516,24 @@ if barstate.islast
     table.cell(t, 0, 10, "Timeframe")
     table.cell(t, 1, 10, isDaily ? "daily (calibrated)" : timeframe.period + " (uncalibrated)",
          text_color = isDaily ? color.gray : color.orange)
+
+// -------------------------------------------------------- LIVE STATUS BANNER ---
+// What to do right now, in words. Reads flat or holding, which direction, how
+// far into the trade, and what the position is worth.
+var table st = table.new(position.bottom_left, 2, 4, border_width=1, frame_width=1, frame_color=color.gray)
+
+if barstate.islast and showStatus
+    stateTxt = not inTrade ? "FLAT - no position" : posLong ? "HOLDING CALL" : "HOLDING PUT"
+    stateCol = not inTrade ? color.gray : posLong ? CALL_COL : PUT_COL
+    daysLeft = holdBars - (bar_index - entryBar)
+
+    table.cell(st, 0, 0, "STATUS", text_color=color.white, bgcolor=color.new(stateCol, 30))
+    table.cell(st, 1, 0, stateTxt, text_color=color.white, bgcolor=color.new(stateCol, 30))
+    table.cell(st, 0, 1, "Signal")
+    table.cell(st, 1, 1, sigName)
+    table.cell(st, 0, 2, inTrade ? "Open P&L" : "Last signal")
+    table.cell(st, 1, 2, inTrade ? ((curPnlPct > 0 ? "+" : "") + str.tostring(curPnlPct, "#.#") + "%") : "-",
+         text_color = not inTrade ? color.gray : curPnlPct > 0 ? CALL_COL : PUT_COL)
+    table.cell(st, 0, 3, inTrade ? "Day / exit in" : "Waiting for")
+    table.cell(st, 1, 3, inTrade ? (str.tostring(curDays) + "d held / " + str.tostring(daysLeft) + " bars")
+         : "next " + (isNeutral ? "volatility" : "entry") + " signal")
