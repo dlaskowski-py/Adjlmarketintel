@@ -24,6 +24,27 @@
 // the CALL leg runs PF 1.56 while the PUT leg runs 1.08. Even the
 // direction-neutral structure is mostly just owning calls in a rising market.
 //
+// McCLELLAN OSCILLATOR - the one signal that beat blind, and its catch.
+// Breadth is EXTERNAL information rather than another transform of this
+// instrument's own price, which is why it behaves differently. Oversold
+// breadth (below -50) reached PF 2.47 against blind's 1.70, t = 3.67, and it
+// survived every attempt to break it: the gap held under four different IV
+// assumptions, and 1020 entries spread across 77 months rather than clustering.
+//
+// But it is DIRECTIONAL DIP-BUYING, not a volatility edge - the same condition
+// buying puts runs PF 0.58. And it has stopped working:
+//
+//   era        blind PF   oversold PF
+//   2000-2008    1.23        1.39
+//   2009-2015    1.74        4.85
+//   2016-2021    2.33        4.46
+//   2022-2026    1.70        0.85   <- loses, t = -3.23, real not noise
+//
+// Its best years were the greatest dip-buying era in market history. Since
+// 2022 it has underperformed blind entry by a statistically significant
+// margin. Treat the historical numbers as a description of a regime that has
+// ended, not a forecast.
+//
 // Set Blind direction to "Short only" on a rising chart: if long-only prints
 // and short-only bleeds, what you are looking at is drift, not edge.
 //
@@ -56,14 +77,15 @@
 // pane it would flatten the chart. Entry/exit markers are pushed to the price
 // pane individually with force_overlay, so signals stay visible where they
 // matter while the equity curve keeps its own scale.
-indicator("Synthetic Options Engine v7.2", overlay = false, max_labels_count = 500)
+indicator("Synthetic Options Engine v8", overlay = false, max_labels_count = 500)
 
 // ---------------------------------------------------------------- INPUTS ---
 grpS = "Signal"
 sigName = input.string("MACD cross + trend", "Signal", group=grpS,
      options=["MACD cross + trend", "RSI(2) mean reversion", "Donchian breakout",
               "EMA cross", "Volatility contraction", "Squeeze release",
-              "Squeeze + low IV", "ATR contraction", "Blind (every N bars)"])
+              "Squeeze + low IV", "ATR contraction", "McClellan oversold",
+              "McClellan extreme", "Blind (every N bars)"])
 useTrend = input.bool(true, "Trend filter", group=grpS)
 
 grpA = "Averages"
@@ -77,6 +99,15 @@ emaFastL = input.int(20, "EMA cross fast", minval=1, group=grpA)
 emaSlowL = input.int(50, "EMA cross slow", minval=2, group=grpA)
 donLen   = input.int(55, "Donchian lookback", minval=2, group=grpA)
 showMA   = input.bool(true, "Plot trend MA on price", group=grpA)
+
+grpB = "Breadth (McClellan)"
+advSym  = input.symbol("USI:ADVN", "Advancing issues", group=grpB,
+     tooltip="NYSE advancing issues. USI:ADVQ for Nasdaq. Needs both symbols to resolve on your plan.")
+decSym  = input.symbol("USI:DECN", "Declining issues", group=grpB)
+mccFast = input.int(19, "McClellan fast EMA", minval=2, group=grpB)
+mccSlow = input.int(39, "McClellan slow EMA", minval=3, group=grpB)
+mccOver = input.float(-50.0, "Oversold threshold", group=grpB)
+mccExt  = input.float(50.0, "Extreme threshold (absolute)", minval=1, group=grpB)
 
 grpQ = "Volatility signals"
 sqLen    = input.int(20,  "Squeeze length", minval=2, group=grpQ)
@@ -231,6 +262,15 @@ squeezeFired = squeezeOn[1] and not squeezeOn
 atrRel  = ta.atr(14) / close
 atrRank = ta.percentrank(atrRel, 252)
 
+// McClellan Oscillator from exchange breadth. Ratio-adjusted so a changing
+// issue count does not distort the scale. Breadth is external data - the only
+// input here that is not a transform of this instrument's own price.
+advIss = request.security(advSym, timeframe.period, close, lookahead = barmerge.lookahead_off, ignore_invalid_symbol = true)
+decIss = request.security(decSym, timeframe.period, close, lookahead = barmerge.lookahead_off, ignore_invalid_symbol = true)
+breadthOk = not na(advIss) and not na(decIss) and (advIss + decIss) > 0
+rana   = breadthOk ? (advIss - decIss) / (advIss + decIss) * 1000.0 : 0.0
+mcc    = breadthOk ? ta.ema(rana, mccFast) - ta.ema(rana, mccSlow) : na
+
 bool rawL = false
 bool rawS = false
 if sigName == "MACD cross + trend"
@@ -260,6 +300,12 @@ else if sigName == "ATR contraction"
     tight = not na(atrRank) and atrRank < atrPct
     rawL := tight and close > trendMA
     rawS := tight and close <= trendMA
+else if sigName == "McClellan oversold"
+    // Calls only. The same condition buying puts ran PF 0.58 - this is a
+    // bullish dip-buy, not a two-sided volatility signal.
+    rawL := not na(mcc) and mcc < mccOver
+else if sigName == "McClellan extreme"
+    rawL := not na(mcc) and math.abs(mcc) > mccExt
 else
     fire = bar_index % blindN == 0
     goLong = blindDir == "Long only" ? true : blindDir == "Short only" ? false : (math.floor(bar_index / blindN) % 2 == 0)
@@ -539,7 +585,7 @@ if barstate.islast
 // -------------------------------------------------------- LIVE STATUS BANNER ---
 // What to do right now, in words. Reads flat or holding, which direction, how
 // far into the trade, and what the position is worth.
-var table st = table.new(position.bottom_left, 2, 4, border_width=1, frame_width=1, frame_color=color.gray)
+var table st = table.new(position.bottom_left, 2, 5, border_width=1, frame_width=1, frame_color=color.gray)
 
 if barstate.islast and showStatus
     stateTxt = not inTrade ? "FLAT - no position" : posLong ? "HOLDING CALL" : "HOLDING PUT"
@@ -553,6 +599,11 @@ if barstate.islast and showStatus
     table.cell(st, 0, 2, inTrade ? "Open P&L" : "Last signal")
     table.cell(st, 1, 2, inTrade ? ((curPnlPct > 0 ? "+" : "") + str.tostring(curPnlPct, "#.#") + "%") : "-",
          text_color = not inTrade ? color.gray : curPnlPct > 0 ? CALL_COL : PUT_COL)
+    usesBreadth = sigName == "McClellan oversold" or sigName == "McClellan extreme"
+    mccTxt = na(mcc) ? "unavailable" : str.tostring(mcc, "#.#")
+    mccCol = na(mcc) ? color.orange : mcc < mccOver ? CALL_COL : math.abs(mcc) > mccExt ? color.orange : color.gray
+    table.cell(st, 0, 4, "McClellan")
+    table.cell(st, 1, 4, mccTxt + (usesBreadth and na(mcc) ? "  (signal dead)" : ""), text_color = mccCol)
     table.cell(st, 0, 3, inTrade ? "Day / exit in" : "Waiting for")
     table.cell(st, 1, 3, inTrade ? (str.tostring(curDays) + "d held / " + str.tostring(daysLeft) + " bars")
          : "next " + (isNeutral ? "volatility" : "entry") + " signal")
