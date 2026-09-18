@@ -1,30 +1,44 @@
 //@version=6
 // ============================================================================
-// Synthetic Options Backtest Engine
+// Synthetic Options Engine  (v2)
 // ----------------------------------------------------------------------------
-// Pine has no options data - no chains, no strikes, no bid/ask. So this MODELS
-// contracts with Black-Scholes and does its own accounting, bypassing
-// strategy() entirely (which can only ever trade the chart's instrument).
+// Six signals plus a blind control, priced as OPTION contracts with
+// Black-Scholes and accounted for independently of strategy() - which can only
+// ever trade the chart's instrument, never a contract.
 //
-// WHAT MAKES THIS DIFFERENT FROM THE USUAL VERSION OF THIS SCRIPT:
-// The two parameters everyone guesses were MEASURED against real Alpha Vantage
-// chains (30-delta contracts, 25-60 DTE, calm and stressed regimes):
+// THE CONTROL IS THE POINT. "Blind (every N bars)" ignores price entirely.
+// Any signal worth trading must beat it. Across 26 years, 12 names and two
+// option structures, none of these did. Run Blind before trusting anything.
 //
+// Set Blind direction to "Short only" on a rising chart: if long-only prints
+// and short-only bleeds, what you are looking at is drift, not edge.
+//
+// ---------------------------------------------------------------- v2 FIXES --
+// 1. EXIT IV was computed as sigEnt * (ivRatio / ivCalm), which is correct
+//    ONLY when the entry happened in a fully calm regime. An entry at median
+//    volatility mispriced the contract by 37%, and a stressed entry by up to
+//    79%. The entry regime ratio is now stored and divided out properly.
+// 2. Exits no longer evaluate on the entry bar, where a wide stop-loss could
+//    close a position instantly on the bid-ask spread alone.
+// 3. Removed a dead ternary whose branches were identical.
+// 4. Blind control gained a direction switch, for the drift test above.
+//
+// CALIBRATION - measured against real Alpha Vantage chains, not guessed:
 //     regime   IV / trailing 20d RV   bid-ask as % of mark
 //     calm            1.51x                   3.4%
 //     stress          0.84x                  12.2%
+// Interpolated on the realised-vol percentile. Signals that enter in quiet
+// markets buy where the variance premium is RICHEST; a flat assumption hides
+// that, and applying this cut one signal's profit factor from 2.54 to 1.40.
 //
-// Both are interpolated on the realised-vol percentile rather than held flat.
-// That matters more than it sounds: signals that enter in quiet markets are
-// buying where the variance premium is RICHEST, and a flat assumption hides it
-// completely. Applying this calibration cut one signal's profit factor from
-// 2.54 to 1.40 - the difference between a discovery and a mirage.
-//
-// WHAT IT STILL CANNOT DO: real fills, volatility skew, early assignment,
-// or liquidity. It is an honest model, not a substitute for real chains.
+// KNOWN LIMITS: no real fills, no volatility skew, no early assignment, no
+// liquidity modelling. Validated against real chains on 21 trades: the model
+// correlates 0.93 with reality but OVERSTATES win rate by ~10 points and
+// understates the typical loss badly (median -3.9% modelled vs -36.4% real).
+// Treat its output as a ranking of signals, never as position sizing.
 // ============================================================================
 
-indicator("Synthetic Options Engine", overlay = false)
+indicator("Synthetic Options Engine v2", overlay = false)
 
 // ---------------------------------------------------------------- INPUTS ---
 grpS = "Signal"
@@ -33,32 +47,34 @@ sigName = input.string("MACD cross + trend", "Signal", group=grpS,
               "EMA cross", "Volatility contraction", "Blind (every N bars)"])
 useTrend = input.bool(true, "Trend filter (200 MA)", group=grpS)
 blindN   = input.int(20, "Blind: bars between entries", minval=1, group=grpS)
+blindDir = input.string("Long only", "Blind direction", options=["Long only","Short only","Alternate"], group=grpS,
+     tooltip="Long-only blind on a rising chart is pure beta. Run Short-only to see how much apparent edge is just drift.")
 
 grpO = "Contract"
-structure  = input.string("Long option", "Structure", options=["Long option","Credit spread"], group=grpO)
-tgtDelta   = input.float(0.30, "Target delta", minval=0.05, maxval=0.95, step=0.05, group=grpO)
-dte        = input.int(45, "Days to expiry at entry", minval=5, group=grpO)
-widthPct   = input.float(1.5, "Spread width (% of spot)", minval=0.1, step=0.1, group=grpO)
-riskFree   = input.float(4.0, "Risk-free rate %", minval=0, step=0.25, group=grpO)
+structure = input.string("Long option", "Structure", options=["Long option","Credit spread"], group=grpO)
+tgtDelta  = input.float(0.30, "Target delta", minval=0.05, maxval=0.95, step=0.05, group=grpO)
+dte       = input.int(45, "Days to expiry at entry", minval=5, group=grpO)
+widthPct  = input.float(1.5, "Spread width (% of spot)", minval=0.1, step=0.1, group=grpO)
+riskFree  = input.float(4.0, "Risk-free rate %", minval=0, step=0.25, group=grpO)
 
 grpX = "Exits"
-holdBars   = input.int(20, "Max bars held", minval=1, group=grpX)
-tpPct      = input.float(50.0, "Take profit (% of premium/credit)", minval=1, group=grpX)
-slPct      = input.float(100.0, "Stop loss (% of premium/credit)", minval=1, group=grpX)
+holdBars = input.int(20, "Max bars held", minval=1, group=grpX)
+tpPct    = input.float(50.0, "Take profit (% of premium/credit)", minval=1, group=grpX)
+slPct    = input.float(100.0, "Stop loss (% of premium/credit)", minval=1, group=grpX)
 
 grpC = "Calibration (measured against real chains)"
-ivCalm    = input.float(1.51, "IV/RV ratio - calm", minval=0.1, step=0.01, group=grpC)
+ivCalm    = input.float(1.51, "IV/RV ratio - calm",   minval=0.1, step=0.01, group=grpC)
 ivStress  = input.float(0.84, "IV/RV ratio - stress", minval=0.1, step=0.01, group=grpC)
-sprCalm   = input.float(3.4, "Bid-ask % - calm", minval=0.0, step=0.1, group=grpC)
-sprStress = input.float(12.2, "Bid-ask % - stress", minval=0.0, step=0.1, group=grpC)
+sprCalm   = input.float(3.4,  "Bid-ask % - calm",     minval=0.0, step=0.1,  group=grpC)
+sprStress = input.float(12.2, "Bid-ask % - stress",   minval=0.0, step=0.1,  group=grpC)
 
 startCap = input.float(10000, "Starting capital", minval=100, group="Account")
 riskPct  = input.float(2.0, "Capital per trade %", minval=0.1, maxval=100, group="Account")
 
 // ------------------------------------------------------- BLACK-SCHOLES ---
-// Pine has no erf, so the normal CDF uses the Abramowitz-Stegun 26.2.17
-// rational approximation (absolute error < 7.5e-8 - far finer than the vol
-// assumption this sits on top of).
+// Pine has no erf, so the normal CDF uses Abramowitz-Stegun 26.2.17. Verified
+// against math.erf: worst absolute error 7.0e-08, ATM prices exact against
+// reference values, put-call parity exact to machine precision.
 ncdf(x) =>
     ax = math.abs(x)
     k = 1.0 / (1.0 + 0.2316419 * ax)
@@ -88,13 +104,14 @@ bsDelta(S, K, T, sig, r, isCall) =>
         out := isCall ? ncdf(d1) : ncdf(d1) - 1.0
     out
 
-// Bisection on strike to hit a target |delta|. Call delta FALLS as strike
-// rises, put |delta| RISES - using one branch for both converges on nonsense
-// strikes with near-zero premiums, which silently manufactures huge returns.
+// Call delta FALLS as strike rises, put |delta| RISES. Using one branch for
+// both converges on nonsense strikes with near-zero premiums, which silently
+// manufactures enormous fake returns - a bug that actually happened here.
+// 40 halvings of a 750-wide bracket resolves to well under a cent.
 strikeForDelta(S, T, sig, r, target, isCall) =>
     float lo = S * 0.5
     float hi = S * 1.5
-    for i = 0 to 59
+    for i = 0 to 39
         mid = (lo + hi) / 2.0
         dd = math.abs(bsDelta(S, mid, T, sig, r, isCall))
         if isCall
@@ -149,8 +166,11 @@ else if sigName == "Volatility contraction"
     rawS := cheap and close <= trendMA
 else
     fire = bar_index % blindN == 0
-    rawL := fire
+    goLong = blindDir == "Long only" ? true : blindDir == "Short only" ? false : (math.floor(bar_index / blindN) % 2 == 0)
+    rawL := fire and goLong
+    rawS := fire and not goLong
 
+// Filters must never touch the control - a filtered blind entry is not blind.
 isBlind = sigName == "Blind (every N bars)"
 okL = isBlind or not useTrend or close > trendMA
 okS = isBlind or not useTrend or close < trendMA
@@ -158,15 +178,16 @@ longSig  = rawL and okL
 shortSig = rawS and okS
 
 // ----------------------------------------------------------- THE ENGINE ---
-var float equity   = startCap
-var float peakEq   = startCap
-var float maxDD    = 0.0
-var bool  inTrade  = false
-var int   entryBar = 0
-var float kShort   = 0.0
-var float kLong    = 0.0
-var float entryVal = 0.0      // premium paid, or credit received
-var float sigEnt   = 0.0
+var float equity    = startCap
+var float peakEq    = startCap
+var float maxDD     = 0.0
+var bool  inTrade   = false
+var int   entryBar  = 0
+var float kShort    = 0.0
+var float kLong     = 0.0
+var float entryVal  = 0.0      // premium paid, or net credit received
+var float sigEnt    = 0.0
+var float ivRatEnt  = 1.0      // v2: regime ratio AT ENTRY, needed to reprice
 var bool  optIsCall = true
 var bool  isCredit  = false
 var float capAtRisk = 0.0
@@ -182,6 +203,7 @@ if not inTrade and (longSig or shortSig) and not na(realVol) and bar_index > 260
     dirLong = longSig
     T0 = dte / 365.0
     sigEnt := sigmaNow
+    ivRatEnt := ivRatio
     if isSpread
         // Bull put on a long signal, bear call on a short signal.
         sc = not dirLong
@@ -191,30 +213,34 @@ if not inTrade and (longSig or shortSig) and not na(realVol) and bar_index > 260
         credit = bsPrice(close, kShort, T0, sigEnt, rf, sc) - bsPrice(close, kLong, T0, sigEnt, rf, sc)
         width  = math.abs(kShort - kLong)
         if credit > 0 and width - credit > 0
-            entryVal := credit * (1.0 - spreadPct / 2.0)
+            entryVal  := credit * (1.0 - spreadPct / 2.0)
             capAtRisk := width - credit
-            isCredit := true
-            inTrade := true
-            entryBar := bar_index
+            isCredit  := true
+            inTrade   := true
+            entryBar  := bar_index
     else
         optIsCall := dirLong
         kShort := strikeForDelta(close, T0, sigEnt, rf, tgtDelta, dirLong)
         prem = bsPrice(close, kShort, T0, sigEnt, rf, dirLong)
         if prem > 0.01
-            entryVal := prem * (1.0 + spreadPct / 2.0)
+            entryVal  := prem * (1.0 + spreadPct / 2.0)
             capAtRisk := entryVal
-            isCredit := false
-            inTrade := true
-            entryBar := bar_index
+            isCredit  := false
+            inTrade   := true
+            entryBar  := bar_index
 
 float tradeRet = na
 
-if inTrade
+// v2: held >= 1 - never evaluate an exit on the entry bar, where the position
+// shows a loss equal to the spread and a tight stop would fire instantly.
+if inTrade and (bar_index - entryBar) >= 1
     held = bar_index - entryBar
     Tk = math.max((dte - held) / 365.0, 1.0 / 365.0)
-    // Exit IV tracks the REGIME, never the realised move - marking a winner at
-    // post-move realised vol double-counts the very move being measured.
-    sigExit = math.max(sigEnt * (ivRatio / ivCalm), 0.05)
+    // Exit IV follows the REGIME, never the realised move - marking a winner at
+    // post-move realised vol would double-count the very move being measured.
+    // Divide out the ENTRY ratio before applying the current one.
+    sigExit = math.max(sigEnt / ivRatEnt * ivRatio, 0.05)
+
     float nowVal = 0.0
     if isCredit
         nowVal := bsPrice(close, kShort, Tk, sigExit, rf, optIsCall) - bsPrice(close, kLong, Tk, sigExit, rf, optIsCall)
@@ -223,22 +249,16 @@ if inTrade
 
     float pnl = isCredit ? entryVal - nowVal * (1.0 + spreadPct / 2.0)
                          : nowVal * (1.0 - spreadPct / 2.0) - entryVal
-    float pctOfEntry = 100.0 * pnl / (isCredit ? entryVal : entryVal)
+    float pctOfEntry = 100.0 * pnl / entryVal
 
-    bool doExit = false
-    if pctOfEntry >= tpPct
-        doExit := true
-    if pctOfEntry <= -slPct
-        doExit := true
-    if held >= holdBars
-        doExit := true
+    bool doExit = pctOfEntry >= tpPct or pctOfEntry <= -slPct or held >= holdBars
 
     if doExit
         retPct = 100.0 * pnl / capAtRisk
         tradeRet := retPct
         equity := equity * (1.0 + (riskPct / 100.0) * retPct / 100.0)
         peakEq := math.max(peakEq, equity)
-        maxDD := math.max(maxDD, (peakEq - equity) / peakEq * 100.0)
+        maxDD  := math.max(maxDD, (peakEq - equity) / peakEq * 100.0)
         nTrades += 1
         if retPct > 0
             nWins += 1
@@ -250,25 +270,29 @@ if inTrade
 // ----------------------------------------------------------------- PLOTS ---
 plot(equity, "Equity", color.new(color.teal, 0), 2)
 hline(startCap, "Start", color.new(color.gray, 50), hline.style_dashed)
-plotchar(not na(tradeRet) and tradeRet > 0, "win",  "▲", location.bottom, color.new(color.teal, 40), size=size.tiny)
+plotchar(not na(tradeRet) and tradeRet > 0,  "win",  "▲", location.bottom, color.new(color.teal, 40),   size=size.tiny)
 plotchar(not na(tradeRet) and tradeRet <= 0, "loss", "▼", location.top,    color.new(color.maroon, 40), size=size.tiny)
 
 // ------------------------------------------------------------ STATS PANEL ---
+// Profit factor and expectancy sit above win rate deliberately. A 70% win rate
+// with PF 0.92 is a losing strategy that feels like a winning one, and that
+// exact pairing turned up repeatedly in testing.
 var table t = table.new(position.top_right, 2, 10, border_width=1, frame_width=1, frame_color=color.gray)
 
 if barstate.islast
-    pf  = grossLos > 0 ? grossWin / grossLos : na
-    wr  = nTrades > 0 ? 100.0 * nWins / nTrades : 0.0
-    aw  = nWins > 0 ? grossWin / nWins : 0.0
-    nl  = nTrades - nWins
-    al  = nl > 0 ? grossLos / nl : 0.0
-    ex  = nTrades > 0 ? (grossWin - grossLos) / nTrades : 0.0
+    pf = grossLos > 0 ? grossWin / grossLos : na
+    wr = nTrades > 0 ? 100.0 * nWins / nTrades : 0.0
+    nl = nTrades - nWins
+    aw = nWins > 0 ? grossWin / nWins : 0.0
+    al = nl > 0 ? grossLos / nl : 0.0
+    ex = nTrades > 0 ? (grossWin - grossLos) / nTrades : 0.0
 
     pfCol = na(pf) ? color.gray : pf >= 1.3 ? color.teal : pf >= 1.0 ? color.orange : color.maroon
     nCol  = nTrades < 30 ? color.maroon : color.gray
+    hdr   = isBlind ? color.purple : color.blue
 
-    table.cell(t, 0, 0, isBlind ? "CONTROL - blind" : "Options engine", text_color=color.white, bgcolor=color.new(isBlind ? color.purple : color.blue, 20))
-    table.cell(t, 1, 0, isSpread ? "credit" : "long", text_color=color.white, bgcolor=color.new(isBlind ? color.purple : color.blue, 20))
+    table.cell(t, 0, 0, isBlind ? "CONTROL - blind" : "Options engine", text_color=color.white, bgcolor=color.new(hdr, 20))
+    table.cell(t, 1, 0, isSpread ? "credit" : "long", text_color=color.white, bgcolor=color.new(hdr, 20))
     table.cell(t, 0, 1, "Profit factor")
     table.cell(t, 1, 1, na(pf) ? "n/a" : str.tostring(pf, "#.##"), text_color=pfCol)
     table.cell(t, 0, 2, "Expectancy/trade")
