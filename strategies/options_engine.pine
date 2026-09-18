@@ -42,14 +42,26 @@
 // pane it would flatten the chart. Entry/exit markers are pushed to the price
 // pane individually with force_overlay, so signals stay visible where they
 // matter while the equity curve keeps its own scale.
-indicator("Synthetic Options Engine v4", overlay = false, max_labels_count = 500)
+indicator("Synthetic Options Engine v5", overlay = false, max_labels_count = 500)
 
 // ---------------------------------------------------------------- INPUTS ---
 grpS = "Signal"
 sigName = input.string("MACD cross + trend", "Signal", group=grpS,
      options=["MACD cross + trend", "RSI(2) mean reversion", "Donchian breakout",
               "EMA cross", "Volatility contraction", "Blind (every N bars)"])
-useTrend = input.bool(true, "Trend filter (200 MA)", group=grpS)
+useTrend = input.bool(true, "Trend filter", group=grpS)
+
+grpA = "Averages"
+macdFast = input.int(12,  "MACD fast",   minval=1, group=grpA)
+macdSlow = input.int(26,  "MACD slow",   minval=2, group=grpA)
+macdSigL = input.int(9,   "MACD signal", minval=1, group=grpA)
+trendLen = input.int(200, "Trend MA length", minval=2, group=grpA,
+     tooltip="Raise this for slower, longer-horizon signals. 200 on daily is roughly a year of trend.")
+trendTyp = input.string("SMA", "Trend MA type", options=["SMA","EMA","WMA"], group=grpA)
+emaFastL = input.int(20, "EMA cross fast", minval=1, group=grpA)
+emaSlowL = input.int(50, "EMA cross slow", minval=2, group=grpA)
+donLen   = input.int(55, "Donchian lookback", minval=2, group=grpA)
+showMA   = input.bool(true, "Plot trend MA on price", group=grpA)
 blindN   = input.int(20, "Blind: bars between entries", minval=1, group=grpS)
 blindDir = input.string("Long only", "Blind direction", options=["Long only","Short only","Alternate"], group=grpS,
      tooltip="Long-only blind on a rising chart is pure beta. Run Short-only to see how much apparent edge is just drift.")
@@ -74,6 +86,9 @@ sprStress = input.float(12.2, "Bid-ask % - stress",   minval=0.0, step=0.1,  gro
 
 grpV = "Chart markers"
 showMarks  = input.bool(true,  "Show entry/exit markers on price", group=grpV)
+markSizeIn = input.string("Normal", "Marker size", options=["Tiny","Small","Normal","Large"], group=grpV)
+markText   = input.string("CALL / PUT", "Marker text", options=["CALL / PUT","C / P","None"], group=grpV)
+shadeHold  = input.bool(true, "Shade holding period by direction", group=grpV)
 showLabels = input.bool(false, "Label entries with strike and premium", group=grpV,
      tooltip="Detail per trade. Off by default - on a long history it clutters the chart.")
 
@@ -150,7 +165,9 @@ annFactor = math.sqrt(barsPerYear)
 logRet  = math.log(close / close[1])
 realVol = ta.stdev(logRet, 20) * annFactor
 volRank = ta.percentrank(realVol, 252)
-trendMA = ta.sma(close, 200)
+trendMA = trendTyp == "EMA" ? ta.ema(close, trendLen)
+        : trendTyp == "WMA" ? ta.wma(close, trendLen)
+        : ta.sma(close, trendLen)
 
 // The calibration below was measured against daily bars and 25-60 DTE
 // contracts. The maths is now timeframe-correct, but the 1.51x/0.84x ratios
@@ -164,12 +181,12 @@ sigmaNow  = math.max(na(realVol) ? 0.20 : realVol * ivRatio, 0.05)
 rf = riskFree / 100.0
 
 // -------------------------------------------------------------- SIGNALS ---
-[macdLine, macdSig, _mh] = ta.macd(close, 12, 26, 9)
+[macdLine, macdSig, _mh] = ta.macd(close, macdFast, macdSlow, macdSigL)
 rsi2  = ta.rsi(close, 2)
-emaF  = ta.ema(close, 20)
-emaS  = ta.ema(close, 50)
-donHi = ta.highest(high, 55)[1]
-donLo = ta.lowest(low, 55)[1]
+emaF  = ta.ema(close, emaFastL)
+emaS  = ta.ema(close, emaSlowL)
+donHi = ta.highest(high, donLen)[1]
+donLo = ta.lowest(low, donLen)[1]
 
 bool rawL = false
 bool rawS = false
@@ -215,6 +232,7 @@ var float entryVal  = 0.0      // premium paid, or net credit received
 var float sigEnt    = 0.0
 var float ivRatEnt  = 1.0      // v2: regime ratio AT ENTRY, needed to reprice
 var bool  optIsCall = true
+var bool  posLong   = true      // direction of the OPEN position, for shading
 var bool  isCredit  = false
 var float capAtRisk = 0.0
 
@@ -253,6 +271,7 @@ if not inTrade and (longSig or shortSig) and not na(realVol) and bar_index > 260
             inTrade   := true
             entryBar  := bar_index
             entryTime := time
+            posLong   := dirLong
             tookLong  := dirLong
             tookShort := not dirLong
             markStrike := kShort
@@ -268,6 +287,7 @@ if not inTrade and (longSig or shortSig) and not na(realVol) and bar_index > 260
             inTrade   := true
             entryBar  := bar_index
             entryTime := time
+            posLong   := dirLong
             tookLong  := dirLong
             tookShort := not dirLong
             markStrike := kShort
@@ -320,27 +340,37 @@ plot(equity, "Equity", color.new(color.teal, 0), 2)
 hline(startCap, "Start", color.new(color.gray, 50), hline.style_dashed)
 
 // Entry and exit markers are forced onto the PRICE pane. These mark trades the
-// engine actually opened and closed - not raw signal fires.
-plotshape(showMarks and tookLong,  "Call entry", shape.triangleup,   location.belowbar,
-     color.new(color.teal, 0),   text = "C", textcolor = color.new(color.teal, 0),
-     size = size.tiny, force_overlay = true)
-plotshape(showMarks and tookShort, "Put entry",  shape.triangledown, location.abovebar,
-     color.new(color.orange, 0), text = "P", textcolor = color.new(color.orange, 0),
-     size = size.tiny, force_overlay = true)
-plotshape(showMarks and not na(tradeRet) and tradeRet > 0,  "Exit win",  shape.xcross,
-     location.abovebar, color.new(color.teal, 30),   size = size.tiny, force_overlay = true)
+// engine actually opened and closed - not raw signal fires. A signal arriving
+// while a position is already open is ignored by the engine, and drawing it
+// would show entries that never happened.
+mSize = markSizeIn == "Tiny" ? size.tiny : markSizeIn == "Small" ? size.small
+      : markSizeIn == "Large" ? size.large : size.normal
+callTxt = markText == "CALL / PUT" ? "CALL" : markText == "C / P" ? "C" : ""
+putTxt  = markText == "CALL / PUT" ? "PUT"  : markText == "C / P" ? "P" : ""
+
+CALL_COL = #00E5A0
+PUT_COL  = #FF5C5C
+
+plotshape(showMarks and tookLong, "CALL entry", shape.labelup, location.belowbar,
+     color = CALL_COL, text = callTxt, textcolor = color.black,
+     size = mSize, force_overlay = true)
+plotshape(showMarks and tookShort, "PUT entry", shape.labeldown, location.abovebar,
+     color = PUT_COL, text = putTxt, textcolor = color.black,
+     size = mSize, force_overlay = true)
+
+plotshape(showMarks and not na(tradeRet) and tradeRet > 0, "Exit win", shape.xcross,
+     location.abovebar, color = color.new(CALL_COL, 25), size = size.small, force_overlay = true)
 plotshape(showMarks and not na(tradeRet) and tradeRet <= 0, "Exit loss", shape.xcross,
-     location.abovebar, color.new(color.maroon, 30), size = size.tiny, force_overlay = true)
+     location.abovebar, color = color.new(PUT_COL, 25), size = size.small, force_overlay = true)
 
-// Shade the price pane while a contract is open, so holding periods are legible.
-bgcolor(showMarks and inTrade ? color.new(color.blue, 93) : na, force_overlay = true)
+// Shade the holding period in the direction's colour, so an open call position
+// reads differently from an open put at a glance.
+bgcolor(shadeHold and inTrade ? color.new(posLong ? CALL_COL : PUT_COL, 90) : na, force_overlay = true)
 
-if showLabels and (tookLong or tookShort)
-    label.new(bar_index, low, force_overlay = true,
-         text  = (tookLong ? "C " : "P ") + str.tostring(markStrike, "#.##") + "\n$" + str.tostring(markPrem, "#.##"),
-         style = label.style_label_up, size = size.tiny,
-         color = color.new(tookLong ? color.teal : color.orange, 75),
-         textcolor = color.white)
+plot(showMA ? trendMA : na, "Trend MA", color.new(color.orange, 20), 2, force_overlay = true)
+
+alertcondition(tookLong,  "CALL entry", "Options engine opened a CALL position")
+alertcondition(tookShort, "PUT entry",  "Options engine opened a PUT position")
 
 // Win/loss ticks on the equity pane itself.
 plotchar(not na(tradeRet) and tradeRet > 0,  "win",  "▲", location.bottom, color.new(color.teal, 40),   size=size.tiny)
