@@ -340,3 +340,55 @@ decline (KO, PG, WMT, V) pays the costs and receives nothing — V lost the most
 in ratio terms (0.59 to 0.46) on only 17 switches, purely because it never had
 a drawdown worth dodging. And many single-stock collapses arrive as an
 overnight gap on earnings, which a 50/200 cross cannot step in front of.
+
+## Overnight return anomaly — 59 names, 392,782 stock-days
+
+Buy at the close, sell at the next open. Prices back-adjusted so dividends and
+splits are handled correctly across the gap.
+
+**The effect is real and large:**
+
+| session | mean/day | annualised | % positive | daily vol |
+|---------|----------|------------|------------|-----------|
+| overnight (close→open) | +0.0488% | **+13.1%** | 52.2% | 1.28% |
+| intraday (open→close) | +0.0147% | +3.8% | 50.1% | 1.83% |
+| full day (close→close) | +0.0629% | +17.2% | 51.1% | 2.21% |
+
+Overnight minus intraday: +0.0342%/day, **t = 9.60**, holding on 38 of 59
+names. This is by far the strongest statistical result in this document, and
+it matches the published literature (Cooper/Cliff/Gulen 2008 and after).
+
+**It is also not tradeable, for a reason that has nothing to do with costs.**
+
+Overnight-only earns +13.1%/yr. Buy and hold earns +17.2%/yr. Buy and hold
+wins by **4.1 points before a single commission**, because sitting out the day
+session also forfeits its +3.8%/yr. The strategy is a way to earn LESS while
+trading 504 times a year.
+
+Costs then finish it. Breakeven is 4.88 bps per round trip, 2.44 bps per side:
+
+| cost per side | net annual | vs buy & hold |
+|---------------|------------|---------------|
+| 0.0 bps | +13.1% | -4.1pp |
+| 1.0 bps | +7.5% | -9.6pp |
+| 2.0 bps | +2.2% | -14.9pp |
+| 3.0 bps | -2.8% | -19.9pp |
+
+And it has vanished in the current era:
+
+| era | overnight | intraday | spread | t |
+|-----|-----------|----------|--------|---|
+| 1999-2007 | +0.0560% | -0.0013% | +0.0573 | 7.74 |
+| 2008-2015 | +0.0408% | +0.0174% | +0.0234 | 3.54 |
+| 2016-2021 | +0.0655% | +0.0198% | +0.0457 | 7.18 |
+| 2022-2026 | +0.0291% | +0.0298% | **-0.0007** | **-0.09** |
+
+### What it is actually good for
+
+Return per unit of volatility: overnight 0.0381, intraday 0.0080. The day
+session carries 1.4x the volatility for a quarter of the return.
+
+That is an EXECUTION insight, not a strategy. If you are buying anyway, buy at
+the close rather than the open. It changes WHEN you transact rather than HOW
+OFTEN, costs nothing extra, and is therefore the one form in which this
+finding survives contact with reality.
