@@ -202,3 +202,39 @@ entry.
 heavy shelf" are mutually exclusive conditions, and both returned PF 1.69.
 When opposite conditions produce identical results, the feature separating
 them carries no information. Both rows are just blind entry with extra steps.
+
+## Short side: death cross and 50MA systems
+
+The short side is a cleaner test of whether a signal carries information. On
+the long side, drift does the work, which is why nothing beat blind entry
+there. Shorting has no tailwind, so any edge must come from the signal.
+
+**Does a death cross start a multi-day downtrend?** No.
+
+| | fwd20 | max drawdown | % down days | longest down run |
+|---|-------|--------------|-------------|------------------|
+| after death cross | +0.97% | -7.87% | 48.1% | 3.30 bars |
+| after any day | +1.37% | -7.34% | 47.9% | 3.44 bars |
+
+Price ROSE after a death cross. Down-day share matched baseline, and the
+longest consecutive down run was SHORTER than after an ordinary day. t = -0.83
+against baseline, and unlike the breadth study this one is not clustered —
+445 crosses across 199 distinct months, the five densest months holding 8%.
+
+**Shorting on these signals, underlying, 20-day hold, 5bp cost:**
+
+| signal | n | WR | PF | expectancy |
+|--------|---|----|----|------------|
+| Death cross | 442 | 43.0% | 0.76 | -1.00% |
+| Price < 50MA | 2924 | 43.3% | 0.70 | -1.21% |
+| Stacked bearish | 1869 | 41.8% | 0.65 | -1.88% |
+| ADX>25 + below 50 | 1728 | 40.0% | 0.60 | -1.95% |
+| BLIND short | 7762 | 41.7% | 0.65 | -1.42% |
+
+Every one loses, and none beats blind shorting. The ordering is the
+interesting part: expectancy falls monotonically as bearish confirmation is
+stacked on. Requiring price below the 50, the 50 below the 200, the 50 sloping
+down and ADX above 25 produced the WORST result of the five.
+
+As long puts the same signals run PF 0.86 to 0.95, all negative, none beating
+a blind put.
