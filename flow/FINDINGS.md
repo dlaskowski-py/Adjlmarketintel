@@ -284,3 +284,25 @@ anything on a risk-adjusted basis.
 
 Shorting below the 200 destroys it: 2.84% CAGR. The short leg is where the
 money goes, consistent with every other short test here.
+
+### The regime filter does not survive on single tickers
+
+The basket result (CAGR/DD 0.34 -> 0.40) does not carry to individual names.
+Running the identical filter on 12 large caps separately, it improved CAGR/DD
+on only **4 of 12**:
+
+| helped | hurt |
+|--------|------|
+| NVDA 0.33 → 0.41 | MSFT 0.22 → 0.10 |
+| CSCO 0.05 → 0.15 | WMT 0.25 → 0.06 |
+| INTC 0.05 → 0.08 | KO 0.17 → 0.07 |
+| AAPL 0.34 → 0.35 | IBM 0.10 → -0.02 |
+
+The filter works by side-stepping market-wide drawdowns that hit every name
+simultaneously. A single stock's worst drawdowns are usually idiosyncratic and
+are not preceded by a regime change. On one ticker the cross also whipsaws —
+25 to 50 switches per name over the sample, each paying the spread.
+
+This matches the trend-following literature: the approach works on
+diversified portfolios of many markets, not on concentrated single positions.
+Applied to one ticker it is more likely to hurt than help.
