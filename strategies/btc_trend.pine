@@ -56,6 +56,10 @@ grpD = "Display"
 showBH   = input.bool(true, "Buy & hold curve", group=grpD)
 showFilt = input.bool(true, "Filtered curve", group=grpD)
 showMAs  = input.bool(true, "MAs on price", group=grpD)
+showSigs = input.bool(true, "BUY / SELL labels on price", group=grpD)
+sigSize  = input.string("Normal", "Label size", options=["Small","Normal","Large"], group=grpD)
+showPnL  = input.bool(true, "Show each trade's result on the SELL label", group=grpD)
+showEntry= input.bool(true, "Entry price line while holding", group=grpD)
 shadeOff = input.bool(true, "Shade risk-off on price", group=grpD)
 logScale = input.bool(true, "Log-scale curves", group=grpD)
 
@@ -90,6 +94,18 @@ var float expo = 0.0
 var int   nSw  = 0
 var int   barsOn = 0
 
+// Trade bookkeeping. A "trade" is one risk-on stretch, entered on the bar the
+// regime turns bullish and closed when it turns bearish.
+var float entryPx   = na
+var int   entryBar  = 0
+var int   nTrades   = 0
+var int   nWins     = 0
+var float sumWin    = 0.0
+var float sumLoss   = 0.0
+var float bestTrade = 0.0
+var float worstTrade= 0.0
+var float lastTrade = na
+
 if ready
     switched = w != w[1]
     k = switched ? switchCost / 100.0 : 0.0
@@ -106,6 +122,22 @@ if ready
     if riskOn
         barsOn += 1
 
+    if riskOn and not riskOn[1]
+        entryPx := close
+        entryBar := bar_index
+
+    if not riskOn and riskOn[1] and not na(entryPx) and entryPx > 0
+        tr = (close / entryPx - 1.0) * 100.0
+        lastTrade := tr
+        nTrades += 1
+        if tr > 0
+            nWins += 1
+            sumWin += tr
+        else
+            sumLoss += math.abs(tr)
+        bestTrade := math.max(bestTrade, tr)
+        worstTrade := math.min(worstTrade, tr)
+
 GREEN = #00E5A0
 RED   = #FF5C5C
 
@@ -117,10 +149,34 @@ plot(showMAs ? maF : na, "Fast MA", color.new(color.orange, 0), 2, force_overlay
 plot(showMAs ? maS : na, "Slow MA", color.new(color.blue, 0),   2, force_overlay = true)
 bgcolor(shadeOff and ready and not riskOn ? color.new(RED, 88) : na, force_overlay = true)
 
-plotshape(ready and riskOn and not riskOn[1], "Risk ON", shape.triangleup, location.belowbar,
-     color = GREEN, size = size.small, force_overlay = true)
-plotshape(ready and not riskOn and riskOn[1], "Risk OFF", shape.triangledown, location.abovebar,
-     color = RED, size = size.small, force_overlay = true)
+// Two layers. plotshape cannot take dynamic text, so the wordy label is drawn
+// with label.new (which accepts series values) and an uncapped const triangle
+// sits underneath - on a long history the labels age out at 500, the triangles
+// never do.
+buySig  = ready and riskOn and not riskOn[1]
+sellSig = ready and not riskOn and riskOn[1]
+
+plotshape(showSigs and buySig,  "Buy marker",  shape.triangleup,   location.belowbar,
+     color = GREEN, size = size.tiny, force_overlay = true)
+plotshape(showSigs and sellSig, "Sell marker", shape.triangledown, location.abovebar,
+     color = RED,   size = size.tiny, force_overlay = true)
+
+lblSize = sigSize == "Small" ? size.small : sigSize == "Large" ? size.large : size.normal
+
+if showSigs and buySig
+    label.new(bar_index, low, text = "BUY", style = label.style_label_up, size = lblSize,
+         color = GREEN, textcolor = color.black, force_overlay = true)
+
+if showSigs and sellSig
+    res = na(lastTrade) ? "" : "\n" + (lastTrade > 0 ? "+" : "") + str.tostring(lastTrade, "#.#") + "%"
+    label.new(bar_index, high, text = "SELL" + (showPnL ? res : ""),
+         style = label.style_label_down, size = lblSize,
+         color = na(lastTrade) or lastTrade > 0 ? GREEN : RED,
+         textcolor = color.black, force_overlay = true)
+
+// Basis line while a position is open.
+plot(showEntry and riskOn and not na(entryPx) ? entryPx : na, "Entry price",
+     color = color.new(GREEN, 30), linewidth = 1, style = plot.style_linebr, force_overlay = true)
 
 alertcondition(ready and riskOn and not riskOn[1],  "Trend turned bullish", "Fast MA crossed above slow - risk on")
 alertcondition(ready and not riskOn and riskOn[1],  "Trend turned bearish", "Fast MA crossed below slow - risk off")
@@ -185,3 +241,33 @@ if barstate.islast and nBar > barsPerYear
     table.cell(t, 2, 7, "")
     table.cell(t, 3, 7, "")
     table.cell(t, 4, 7, "")
+
+// --------------------------------------------------------- POSITION BANNER ---
+// Where you stand right now, and how the individual trades have gone.
+var table pos = table.new(position.bottom_left, 2, 6, border_width=1, frame_width=1, frame_color=color.gray)
+
+if barstate.islast and showSigs
+    openPnL = riskOn and not na(entryPx) and entryPx > 0 ? (close / entryPx - 1.0) * 100.0 : na
+    held = riskOn ? bar_index - entryBar : 0
+    wr = nTrades > 0 ? 100.0 * nWins / nTrades : 0.0
+    avgW = nWins > 0 ? sumWin / nWins : 0.0
+    nL = nTrades - nWins
+    avgL = nL > 0 ? sumLoss / nL : 0.0
+    stateCol = riskOn ? GREEN : RED
+
+    table.cell(pos, 0, 0, "POSITION", text_color=color.white, bgcolor=color.new(stateCol, 30))
+    table.cell(pos, 1, 0, riskOn ? "LONG - holding" : "FLAT - waiting for BUY",
+         text_color=color.white, bgcolor=color.new(stateCol, 30))
+    table.cell(pos, 0, 1, riskOn ? "Entry price" : "Last trade")
+    table.cell(pos, 1, 1, riskOn ? str.tostring(entryPx, format.mintick)
+         : (na(lastTrade) ? "-" : (lastTrade > 0 ? "+" : "") + str.tostring(lastTrade, "#.#") + "%"),
+         text_color = riskOn ? color.gray : (na(lastTrade) or lastTrade > 0 ? GREEN : RED))
+    table.cell(pos, 0, 2, riskOn ? "Open P&L" : "Next signal")
+    table.cell(pos, 1, 2, riskOn ? ((openPnL > 0 ? "+" : "") + str.tostring(openPnL, "#.#") + "%") : "BUY on bullish cross",
+         text_color = riskOn ? (openPnL > 0 ? GREEN : RED) : color.gray)
+    table.cell(pos, 0, 3, riskOn ? "Bars held" : "Bars flat")
+    table.cell(pos, 1, 3, str.tostring(riskOn ? held : bar_index - entryBar))
+    table.cell(pos, 0, 4, "Completed trades")
+    table.cell(pos, 1, 4, str.tostring(nTrades) + "  win rate " + str.tostring(wr, "#") + "%")
+    table.cell(pos, 0, 5, "Avg win / loss")
+    table.cell(pos, 1, 5, "+" + str.tostring(avgW, "#.#") + "% / -" + str.tostring(avgL, "#.#") + "%")
