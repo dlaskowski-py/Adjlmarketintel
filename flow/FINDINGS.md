@@ -306,3 +306,37 @@ are not preceded by a regime change. On one ticker the cross also whipsaws —
 This matches the trend-following literature: the approach works on
 diversified portfolios of many markets, not on concentrated single positions.
 Applied to one ticker it is more likely to hurt than help.
+
+### Which individual stocks the filter helps, and why it still is not worth it
+
+Across all 25 names the filter improved return-per-drawdown on **9 of 25**
+(36%). What separates the two groups is drawdown severity:
+
+| | helped | hurt | gap |
+|---|--------|------|-----|
+| mean buy-&-hold drawdown | 83.0% | 62.1% | +20.9 |
+| mean daily volatility | 2.66% | 1.95% | +0.71 |
+| mean regime switches | 31.3 | 39.1 | -7.8 |
+
+Correlation between a name's buy-and-hold drawdown and how much the filter
+helps it: **+0.68**. Volatility +0.43. Switch count **-0.31** — more whipsaw,
+worse outcome.
+
+Splitting at the median 70% drawdown:
+
+| group | helped | mean change in CAGR/DD |
+|-------|--------|------------------------|
+| drawdown above 70% | 7/12 | **-0.008** |
+| drawdown below 70% | 2/13 | **-0.078** |
+
+So the honest reading is not "use it on volatile names". On the high-drawdown
+half it is a coin flip that averages to **zero**. On the stable half it is
+reliably harmful. The correlation predicts where the filter is *less bad*,
+and less bad is not good.
+
+The mechanism explains it. The filter pays whipsaw costs continuously and is
+reimbursed only by avoiding one catastrophic decline. A stock without such a
+decline (KO, PG, WMT, V) pays the costs and receives nothing — V lost the most
+in ratio terms (0.59 to 0.46) on only 17 switches, purely because it never had
+a drawdown worth dodging. And many single-stock collapses arrive as an
+overnight gap on earnings, which a 50/200 cross cannot step in front of.
