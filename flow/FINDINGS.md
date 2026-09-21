@@ -140,3 +140,39 @@ the eras that already worked.
 
 Improving a historical number while failing to restore the recent edge is the
 signature of fitting to the good years, not of finding a fix.
+
+### Correction: the McClellan result does not survive correct statistics
+
+The significance reported above (t = 3.67 against blind, and t = -3.23 for the
+2022-2026 decline) counted each stock-day as an independent observation. It is
+not. When breadth is oversold, all 25 names enter on the SAME day and move
+together — that is one observation, not 25.
+
+Collapsing consecutive oversold days into episodes and measuring the
+equal-weight basket gives 223 independent episodes over 26 years, not ~1030
+stock-days. At that level:
+
+| era | episodes | edge | t | verdict |
+|-----|----------|------|---|---------|
+| 2000-2008 | 78 | +0.28pp | 0.49 | not significant |
+| 2009-2015 | 63 | +0.37pp | 0.55 | not significant |
+| 2016-2021 | 48 | -0.25pp | -0.27 | not significant |
+| 2022-2026 | 34 | -0.14pp | -0.18 | not significant |
+| **FULL** | **223** | **+0.11pp** | **0.31** | **not significant** |
+
+Nothing is significant, in any era, including the full sample.
+
+Two conclusions change:
+
+1. The McClellan oscillator did NOT beat blind entry. The apparent PF 2.47
+   versus 1.70 was cross-sectional correlation being counted as sample size.
+2. The "it worked and then decayed" narrative is also unsupported. Those era
+   differences are noise around zero.
+
+Note the direction of the remaining uncertainty: 223 high-variance episodes
+give low power. This says the data cannot distinguish the effect from zero,
+not that the effect is provably zero. But the burden of proof is on the
+signal, and it is not met.
+
+This same clustering inflated every cross-sectional t-statistic in this
+document. Treat the flow-study figures with the same scepticism.
