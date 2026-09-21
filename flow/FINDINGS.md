@@ -176,3 +176,29 @@ signal, and it is not met.
 
 This same clustering inflated every cross-sectional t-statistic in this
 document. Treat the flow-study figures with the same scepticism.
+
+## Volume shelves (volume profile)
+
+Volume-at-price is a different transform from the price-over-time indicators -
+it uses where volume traded, not just what price did. Built from daily bars by
+distributing each bar's volume uniformly across its high-low range (a coarser
+view than a tick-based profile tool).
+
+Long 30-delta call, 20-bar hold, 20-bar minimum spacing, calibrated pricing:
+
+| signal | n | WR | PF | E | vs blind | t | names beaten |
+|--------|---|----|----|---|----------|---|--------------|
+| VA breakout | 545 | 40.0% | 1.36 | +14.6% | -9.85pp | -1.37 | 4/12 |
+| POC retest | 761 | 40.2% | 1.46 | +18.9% | -5.49pp | -0.86 | 3/12 |
+| LVN (thin node) | 1647 | 40.9% | 1.69 | +27.1% | +2.69pp | 0.51 | 7/12 |
+| ON shelf (HVN) | 1078 | 41.7% | 1.69 | +27.5% | +3.07pp | 0.47 | 9/12 |
+| BLIND control | 3746 | 39.5% | 1.60 | +24.4% | — | — | — |
+
+Nothing significant. The two textbook volume-profile trades - breaking out of
+the value area, and retesting the point of control - both did WORSE than blind
+entry.
+
+**The diagnostic that settles it:** "price in a thin node" and "price on a
+heavy shelf" are mutually exclusive conditions, and both returned PF 1.69.
+When opposite conditions produce identical results, the feature separating
+them carries no information. Both rows are just blind entry with extra steps.
