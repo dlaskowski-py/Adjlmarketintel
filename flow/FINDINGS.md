@@ -392,3 +392,52 @@ That is an EXECUTION insight, not a strategy. If you are buying anyway, buy at
 the close rather than the open. It changes WHEN you transact rather than HOW
 OFTEN, costs nothing extra, and is therefore the one form in which this
 finding survives contact with reality.
+
+## BTC trend regime — the one filter that improves return AND drawdown
+
+Same 50/200-style filter that merely reduced risk on equities, applied to
+BTC/USD from 2014 (12.7 years, 10bp per switch):
+
+| strategy | CAGR | max DD | CAGR/DD | exposure | switches |
+|----------|------|--------|---------|----------|----------|
+| Buy & hold | 44.3% | 83.3% | 0.53 | 100% | 0 |
+| 20/100 MA | 49.1% | 68.9% | 0.71 | 55% | 49 |
+| **30/150 MA** | **53.9%** | **67.8%** | **0.80** | 57% | 25 |
+| 50/200 MA | 45.5% | 74.3% | 0.61 | 58% | 22 |
+
+On equities the filter cost six points of CAGR to halve drawdown. Here it
+raises CAGR and cuts drawdown together, because BTC's declines are severe
+enough that avoiding them more than pays for the upside forgone.
+
+**Robustness, not the best cell.** Across a 6x6 grid of fast and slow lengths,
+**all 32 valid cells beat buy-and-hold** — median 0.71, worst 0.57, best 0.95.
+A whole surface that works is a property of the asset; one strong cell would
+be noise. The shipped default (30/150) is central in the surface rather than
+its maximum.
+
+**It survived every attack:**
+
+- **Costs** — still +0.16 over buy-and-hold at 200bp per switch, because it
+  only switches about twice a year.
+- **Single-event dependence** — dropping the worst crash entirely (2017-12 to
+  2018-12, -83%) still leaves it ahead, 0.98 against 0.89.
+- **Cycle by cycle** — won all three bear markets, lost two bulls:
+
+| cycle | buy & hold | filtered |
+|-------|-----------|----------|
+| 2014-15 bear | -25.3% | **+6.1%** |
+| 2016-17 bull | +469.6% | +469.6% |
+| 2018-19 bear | -28.4% | **+15.5%** |
+| 2020-21 bull | +153.2% | +50.9% |
+| 2022 bear | -64.3% | **0.0%** (flat all year) |
+| 2023-26 | +53.6% | +18.2% |
+
+That is insurance, not prediction. It pays premium in rallies and collects in
+crashes, converting -25%, -28% and -64% into +6%, +15% and 0%.
+
+### What this cannot establish
+
+One asset, roughly five independent cycles. BTC also survived — testing a
+filter on the crypto that went from five cents to eighty thousand dollars says
+nothing about the ones that went to zero, and the buy-and-hold benchmark is
+itself flattered by that survival. One strong case, not a law.
