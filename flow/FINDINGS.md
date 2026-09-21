@@ -93,3 +93,50 @@ The 2022-2026 underperformance is real, not small-sample noise: t = -3.23.
 
 Its strongest years were the most relentless dip-buying regime in market
 history. The historical numbers describe a regime that appears to have ended.
+
+### Why it stopped working
+
+It did not break in 2022. The edge has been decaying for twenty years and
+2022 is simply where it crossed below the cost of trading it.
+
+**Bounce edge** — the underlying's 20-day return after oversold breadth, minus
+the return on all days:
+
+| era | bounce edge |
+|-----|-------------|
+| 2000-2008 | +0.89pp |
+| 2009-2015 | +0.82pp |
+| 2016-2021 | +0.29pp |
+| 2022-2026 | +0.10pp |
+
+Option costs — spread, theta, variance risk premium — are roughly constant.
+The bounce itself still exists at +0.10pp; it is simply no longer large enough
+to pay for them. The McClellan Oscillator has been published since 1969, and
+this is what the life cycle of a widely known signal looks like.
+
+**Regime change made it worse.** Oversold entries split by whether price was
+above or below its 200-day average:
+
+| era | above 200MA | below 200MA |
+|-----|-------------|-------------|
+| 2009-2015 | PF 6.44 | PF 3.77 |
+| 2016-2021 | PF 4.17 | PF 5.32 |
+| 2022-2026 | PF 1.32 | **PF 0.55, -27.4%** |
+
+Through 2021, oversold breadth in a downtrend still paid - dips recovered
+regardless. From 2022 it stopped. A mean-reversion bet needs an uptrend to
+revert into.
+
+**Breadth decoupled from returns.** The mega-cap minus everything-else gap on
+oversold days widened from +0.65pp to +1.04pp. Breadth measures the median
+stock, and index returns increasingly came from a handful of names.
+
+### The obvious fix does not work
+
+Adding the 200MA trend filter raises full-sample profit factor from 2.47 to
+2.83 — but in 2022-2026 it still returns PF 1.32 against blind entry's 1.70,
+with t = -1.01 against blind. The full-sample improvement comes entirely from
+the eras that already worked.
+
+Improving a historical number while failing to restore the recent edge is the
+signature of fitting to the good years, not of finding a fix.
