@@ -238,3 +238,49 @@ down and ADX above 25 produced the WORST result of the five.
 
 As long puts the same signals run PF 0.86 to 0.95, all negative, none beating
 a blind put.
+
+## The 50/200 cross tested as a regime filter, not an event
+
+Testing the golden/death cross as a 20-day event signal tests it wrongly. It
+is a long-horizon regime tool, and its documented value is drawdown control
+rather than return.
+
+**As an event it is worthless in both directions** — both crosses underperform
+baseline at every horizon:
+
+| horizon | after golden | after death | baseline |
+|---------|--------------|-------------|----------|
+| 20 bars | +0.52% | +0.96% | +1.37% |
+| 60 bars | +3.21% | +4.38% | +4.17% |
+| 120 bars | +6.63% | +6.66% | +8.55% |
+| 250 bars | +15.47% | +14.39% | +19.17% |
+
+At 20 and 60 bars the DEATH cross outperformed the GOLDEN cross. The bullish
+event did worse than the bearish one.
+
+**As a regime it predicts volatility, not direction:**
+
+| state | annualised return | daily vol |
+|-------|-------------------|-----------|
+| 50 above 200 | +18.4%/yr | 1.94% |
+| 50 below 200 | +21.9%/yr | 2.80% |
+
+Returns below the 200 were HIGHER, not lower (t = -0.88, not significant).
+Volatility below it was 1.45x higher. That is the actual content of the
+signal.
+
+**Which makes it a risk tool, and as a risk tool it works:**
+
+| strategy | CAGR | max DD | exposure | growth | CAGR/DD |
+|----------|------|--------|----------|--------|---------|
+| Buy & hold | 16.53% | 49.3% | 100% | 52.0x | 0.34 |
+| Long only while 50 > 200 | 10.39% | 25.7% | 65% | 12.9x | **0.40** |
+| Long above / short below | 2.84% | 40.1% | 48% | 2.1x | 0.07 |
+
+The filter costs 6 points of CAGR and halves the drawdown, improving return
+per unit of drawdown from 0.34 to 0.40. That is a real if modest improvement,
+and it is the first classic technical tool in this document to improve
+anything on a risk-adjusted basis.
+
+Shorting below the 200 destroys it: 2.84% CAGR. The short leg is where the
+money goes, consistent with every other short test here.
