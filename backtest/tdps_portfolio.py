@@ -1,3 +1,24 @@
+#!/usr/bin/env python3
+"""
+Portfolio simulation for TDPS. Per-trade expectancy says nothing about return
+until positions compete for capital, so this places every trade on a calendar,
+allocates 1/slots of equity to each, and skips signals when every slot is full.
+
+Two traps this exists to avoid:
+
+  1. Ordering bias. Sorting trades by (entry, exit, pnl) makes same-date ties
+     break by exit date and then by pnl, so on clustered entry days the sim
+     systematically fills its slots with the shortest, worst trades. The first
+     version of this did exactly that and reported -12.6% CAGR for a config
+     with positive expectancy. Shuffle first, then stable-sort by entry date
+     alone, and report a spread across seeds.
+
+  2. Reading aggregate trade profit as return. Summing trade returns ignores
+     that they overlap and compound on shared capital.
+
+Result on the full history at 20 slots: shipped TDPS 2.36% CAGR, v3 5.62%,
+SPY buy-and-hold 8.34%. See flow/FINDINGS.md.
+"""
 exec(open('/tmp/claude-0/-home-user/e511f7fa-2251-5829-b743-c2cf14d27d38/scratchpad/lab.py').read())
 import datetime as dt
 
@@ -48,18 +69,3 @@ def portfolio(slots, **kw):
     yrs=(max(ds)-min(ds)).days/365.25
     return dict(cagr=100*(eq**(1/yrs)-1), taken=taken, skipped=skipped, mdd=100*mdd, yrs=yrs)
 
-CFG={"shipped 70/3.0/3.0/BE":dict(),
-     "v3 30/4.5/4.0/BE":dict(scale=0.30,stop=4.5,trail=4.0,be=True),
-     "30/4.5/4.0 no BE":dict(scale=0.30,stop=4.5,trail=4.0,be=False),
-     "0/12/12 hold 250":dict(scale=0.0,stop=12.0,trail=12.0,be=False,hold_pre=250,hold_post=250)}
-print("Portfolio simulation, full history, equal 1/slots of equity per position,")
-print("signals skipped when every slot is full.\n")
-print(f"  {'config':<24} {'slots':>5} {'CAGR':>8} {'taken':>7} {'skipped':>8} {'maxDD':>7}")
-for nm,kw in CFG.items():
-    for s in (5,10,20):
-        r=portfolio(s,start=None,**kw)
-        print(f"  {nm:<24} {s:>5} {r['cagr']:>7.2f}% {r['taken']:>7} {r['skipped']:>8} {r['mdd']:>6.1f}%")
-    print()
-z=prep('data/SPY_daily_adj.csv'); c=z['c']; d=z['d']
-yrs=(dt.date.fromisoformat(d[-1])-dt.date.fromisoformat(d[205])).days/365.25
-print(f"  SPY buy and hold over the same window: {100*((c[-1]/c[205])**(1/yrs)-1):.2f}% CAGR")
