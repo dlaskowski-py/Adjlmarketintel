@@ -808,3 +808,47 @@ from 85% to 67%. Holding less naturally draws down less; that is position sizing
 wearing the costume of signal quality. The three filters are defensible as
 regime/exposure controls, and they did no harm, but they are not a demonstrated
 improvement in picking entries and they should not be sold as one.
+
+## Is it a safe short-term strategy?
+
+Short-term: yes. Safe: no. And the pure short-term version loses money.
+
+**Holding period** (v2, 75 large caps, full history): median **12 calendar days**,
+75th percentile 22, 90th 54, maximum 63. It is genuinely a swing strategy.
+
+**The pure short-term version — close 100% at the snapback, no runner:**
+
+    median hold   12 days
+    win rate      63.8%   <- the highest hit rate the system produces
+    average win   +2.077%      average loss  -3.454%
+    expectancy    +0.075%
+    $50,000  ->   $44,182 over 26.8 years
+
+The cleanest, highest-hit-rate, shortest-duration version of this strategy
+**loses money after costs**. Everything the system earns comes from the 30% that
+is held longer, through the part that is neither short nor comfortable.
+
+**Tail risk per trade** — against a stop that is supposed to cap losses at 3 ATR:
+
+    worst 25%     -1.34%       worst 1%      -10.44%
+    worst 5%      -6.63%       worst 0.1%    -18.26%
+    single worst trade  -27.15%
+    1.2% of trades lose more than 10%
+
+**Tail risk per run.** Longest losing streak in chronological order: **44 trades
+back to back.** Resampling the trade distribution:
+
+    chance a run of  10 trades is net negative   42.6%
+    chance a run of  25 trades is net negative   40.0%
+    chance a run of  50 trades is net negative   37.2%
+    chance a run of 100 trades is net negative   32.7%
+
+**After one hundred trades there is still a one-in-three chance of being down.**
+The per-trade edge (+0.192%) is tiny against per-trade dispersion, so no
+realistic sample size makes the outcome feel reliable.
+
+**The stop does not do what it says.** Across 17,313 stop touches, **2,660 (15.4%)
+filled by a gap below the intended stop price**, the worst 20.7% below it. So
+roughly one stop in six does not cap the loss where the position sizing assumed
+it would — which is the specific reason "risk management makes this safe" does
+not hold, and why the -27.15% trade exists at all on a 3-ATR stop.
