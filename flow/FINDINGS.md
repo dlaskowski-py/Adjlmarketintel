@@ -556,3 +556,38 @@ The cost is 10pp of win rate over the full history, 6pp recent.
   the 1-name and 8+ buckets are both worse, and the 2-3 bucket reverses ordering
   between eras. A non-monotone hump across arbitrary buckets is the shape a
   spurious result takes. Not established — would need a continuous test.
+
+## TDPS — per-trade expectancy is not return
+
+Placing every trade on a calendar and making positions compete for capital
+(`backtest/tdps_portfolio.py`, 1/slots of equity each, skip when full, random
+tie-breaking across 20 seeds, full history):
+
+| config | 5 slots | 10 | 20 | 40 | maxDD @20 | deployed |
+|---|---|---|---|---|---|---|
+| shipped 70/3.0/3.0/BE | -1.12% | +0.91% | **+2.36%** | +1.80% | 18.0% | 79% |
+| v3 30/4.5/4.0/BE | +3.04% | +4.57% | **+5.62%** | +3.85% | 23.1% | 79% |
+| 0% scale, 12 ATR, hold 250 | **+18.33%** | +13.95% | +12.86% | +10.06% | 32.4% | 86% |
+| SPY buy and hold | — | — | **+8.34%** | — | 55.2% | 100% |
+
+**The v3 improvement is real: 2.36% -> 5.62% CAGR, and the drawdown stays near
+20%. But both are below SPY buy-and-hold over the same window.** The capital is
+deployed 79% of the time, so this is not an idle-cash artifact. Per unit of
+drawdown TDPS is the better vehicle (v3 0.24 return/DD against SPY's 0.15), and
+it would need roughly 1.5x leverage to match SPY outright.
+
+**Raising per-trade expectancy past ~1% requires abandoning the swing horizon.**
+Sweeping toward higher expectancy on the full history:
+
+    30/4.5/4.0 no BE     exp +0.814%   hold 15/40    win 44.2%
+    0/8.0/8.0 hold 120   exp +3.207%   hold 120      win 35.2%
+    0/12/12  hold 250    exp +5.116%   hold 250      win 32.4%
+
+The 2-3%-per-trade configurations are the only ones that beat SPY (12.9-18.3%
+CAGR), and they are no longer TDPS: no scale-out, a 12-ATR stop, and positions
+held up to a year. That is "buy pullbacks in an uptrend and hold", which is the
+same time-in-market conclusion every other positive result in this file reached.
+
+Expectancy, aggregate trade profit and CAGR are three different numbers. The
+earlier "2.1x aggregate profit" figure for v3 is a sum of trade returns, not a
+return; the CAGR improvement is 2.36% -> 5.62%.
