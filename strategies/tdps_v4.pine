@@ -1,0 +1,209 @@
+//@version=5
+// Trend-filtered pullback swing, v4 — entry quality, not leverage.
+//
+// v3 raised return by holding more of the position for longer. That is leverage
+// on direction: it won more in every rising market tested and lost more in every
+// falling one. v4 instead asks a different question at the ENTRY — is this
+// pullback the healthy kind? — with three filters a discretionary trader would
+// recognise on sight. Each is one sentence, and each was measured alone before
+// being combined.
+//
+//   A. The 200-day must be RISING, not merely below price. Price above a flat or
+//      rolling-over 200-day is a trend that has already stopped working.
+//   C. Do not buy more than 8% above the 50-day. If the stock is that extended,
+//      an RSI(2) dip is a pause in a vertical move, not a pullback to value.
+//   F. Only names outperforming SPY over the last 60 days. Buy dips in leaders;
+//      a dip in a laggard is just a laggard.
+//
+// Measured on 75 large caps, 1999-2026, next-open fills, full costs, $50,000 at
+// 20 slots, against the same exits with no entry filters:
+//
+//                        expectancy    date-clustered t    $50,000 ->    max DD
+//   v2 entry (no filter)   +0.192%           2.30           $70,029      21.5%
+//   v4 entry (A+C+F)       +0.259%           3.21           $92,368      15.7%
+//
+// More money AND a six-point smaller drawdown, from 42% fewer trades. It improves
+// in EVERY era tested including all three bear markets, which is what separates
+// it from v3:
+//
+//              2000-2002   2008-2009    2022     2023-2026
+//   no filter   -0.300%     -1.381%    -1.020%    +0.371%
+//   A+C+F       -0.264%     -1.079%    -0.866%    +0.595%
+//
+// Filters are individually positive too, so this is not one effect wearing three
+// hats: A alone $75,150, C alone $77,048, F alone $90,895. F (relative strength)
+// is the strongest single addition; A and C mainly buy drawdown reduction.
+//
+// WHAT WAS TESTED AND REJECTED, because plausible is not the same as true:
+//   - "The dip should hold above the 50-day." Sounds like the definition of a
+//     healthy pullback. It gutted the edge (t 2.30 -> 1.12). The DEEP dip is the
+//     signal; cutting it short removes what you came for.
+//   - "The dip should be short, 3 down days or fewer." Expectancy fell to +0.132%.
+//   - "Exit when RSI(2) goes above 90." Symmetric to the entry and very tidy, but
+//     expectancy fell from +0.259% to +0.174%: the runner needs room to run.
+//
+// EXIT GEOMETRY is left at v2's (70% scale, 3.0 ATR stop, 3.0 ATR trail) because
+// it is the configuration that does not deepen per-trade losses in busts. Setting
+// scalePercent 30 / stop 4.5 / trail 4.0 on these same filters returns $145,012 at
+// a LOWER portfolio drawdown (14.3%) and t=4.42 — but individual trades in
+// 2000-2002, 2008-09 and 2022 lose materially more. Which of those is "deeper
+// losses" depends on whether you feel the account or the trade. Both are honest;
+// pick deliberately.
+//
+// ONE SYMBOL IS NOT THE PORTFOLIO. With equal-dollar sizing the tester deploys
+// $2,500 of the $50,000 on the single charted symbol, so its percentage return on
+// total equity will look small. That is correct. The figures above come from all
+// 75 names competing for 20 slots, which TradingView cannot simulate from one
+// chart. Judge a symbol on expectancy and profit factor, not net profit.
+//
+// NOTE ON THE STRATEGY TESTER. A scale-out writes TWO closed trades into the trade
+// list, so the tester's win rate and expectancy are computed over exit LEGS, not
+// positions. Do not reconcile the panel against pooled position-level statistics.
+//
+// SIZING. Equal dollars per position, which is what the statistics above measure.
+// Set dollarsPerTrade to equity/slots. initial_capital is $50,000 because at
+// $10,000 math.floor() returns under one share on the highest-ATR names and
+// silently drops them; those skips are plotted and alerted here rather than hidden.
+strategy("Trend Pullback Swing v4 [QuantPad]", overlay=true, initial_capital=50000, pyramiding=0, default_qty_type=strategy.fixed, default_qty_value=1, commission_type=strategy.commission.percent, commission_value=0.05, slippage=5, margin_long=0, margin_short=0, process_orders_on_close=true, calc_on_every_tick=false)
+
+fastLength = input.int(50, "Fast MA length", minval=2, group="Trend filter")
+slowLength = input.int(200, "Slow MA length", minval=20, group="Trend filter")
+
+rsiLength = input.int(2, "Pullback RSI length", minval=1, group="Entry")
+rsiThreshold = input.int(15, "RSI oversold below", minval=1, maxval=50, group="Entry", tooltip="Already on a plateau - anything from 5 to 15 works and expectancy degrades above 20. Left unchanged from v2.")
+useRisingSlow = input.bool(true, "Require the 200MA to be rising", group="Entry quality", tooltip="Price above a flat or rolling-over 200-day is a trend that has already stopped working. Alone: $75,150 vs $70,029 unfiltered, and drawdown 16.7% vs 21.5%.")
+slopeLookback = input.int(20, "200MA slope lookback (bars)", minval=5, group="Entry quality")
+useNotExtended = input.bool(true, "Reject entries far above the 50MA", group="Entry quality", tooltip="An RSI(2) dip in a vertical move is a pause, not a pullback to value. Alone: $77,048 and the highest single-filter t of the three.")
+maxExtPercent = input.float(8.0, "Max % above the 50MA", minval=1.0, step=0.5, group="Entry quality")
+useRelStrength = input.bool(true, "Require outperformance vs benchmark", group="Entry quality", tooltip="Buy dips in leaders; a dip in a laggard is just a laggard. The strongest single filter: $90,895 alone against $70,029 unfiltered.")
+benchSymbol = input.symbol("AMEX:SPY", "Benchmark", group="Entry quality")
+rsLookback = input.int(60, "Relative strength lookback (bars)", minval=10, group="Entry quality")
+useVolRegime = input.bool(false, "Require calm ATR regime", group="Entry", tooltip="Design-set evidence only; not holdout-validated. Off by default.")
+atrRankLength = input.int(252, "ATR percentile lookback", minval=50, group="Entry")
+atrRankMax = input.float(60.0, "Max ATR percentile", minval=5.0, maxval=100.0, step=5.0, group="Entry")
+
+useFixedDollar = input.bool(true, "Size by fixed dollars per trade", group="Sizing", tooltip="On (default): equal dollars per position, which is what the pooled and portfolio statistics measure. Off: size so the initial stop costs riskPercent of equity, which equalises dollar risk but makes notional vary inversely with ATR.")
+dollarsPerTrade = input.float(2500.0, "Dollars per trade", minval=50.0, step=50.0, group="Sizing", tooltip="Set this to equity divided by the number of concurrent positions you intend to run. $2,500 is 1/20th of a $50,000 account, the configuration the portfolio results were measured on.")
+riskPercent = input.float(1.0, "Risk per trade (% of equity)", minval=0.05, maxval=25.0, step=0.05, group="Sizing", tooltip="Only used when fixed-dollar sizing is off. 1% of $50,000 = $500 lost if the 4.5-ATR stop is hit. Do NOT size so a single loss is a large fraction of the account: the win rate here is ~52%, so losing streaks are longer than v2's.")
+
+atrLength = input.int(14, "ATR length", minval=2, group="Exits")
+stopAtrMult = input.float(3.0, "Initial stop (ATR multiple)", minval=0.5, step=0.5, group="Exits", tooltip="Left at v2's 3.0. Widening to 4.5 raises full-sample return but deepens per-trade losses in every bear market tested, which is the trade v4 is deliberately not making.")
+scalePercent = input.int(70, "Sell this % at snapback", minval=0, maxval=100, group="Exits", tooltip="Left at 70. Lowering it to 30 raises full-sample return substantially, but the large scale-out is doing genuine defensive work: it is why bear-market trades lose less here than under v3. Lower it only if you intend to hold through busts.")
+snapbackLength = input.int(10, "Snapback MA length", minval=2, group="Exits")
+trailAtrMult = input.float(3.0, "Chandelier trail (ATR multiple)", minval=0.5, step=0.5, group="Exits", tooltip="Left at v2's 3.0. The 3.0-6.0 plateau favours the wider end on full-sample return, at the cost of deeper bear-market losses.")
+useBreakevenStop = input.bool(true, "Move stop to breakeven after scaling", group="Exits", tooltip="Kept on. It costs some expectancy over the full history and buys roughly 7pp of win rate; v2's claim of no detectable cost does not hold on this sample.")
+maxHoldBeforeScale = input.int(15, "Max bars before scaling", minval=1, group="Exits", tooltip="On a plateau - 15 and 25 are indistinguishable, 8 and below hurt. Unchanged.")
+maxHoldRunner = input.int(40, "Max bars for runner", minval=1, group="Exits")
+
+fastMA = ta.sma(close, fastLength)
+slowMA = ta.sma(close, slowLength)
+snapbackMA = ta.sma(close, snapbackLength)
+pullbackRSI = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+atrRank = ta.percentrank(atrValue, atrRankLength)
+
+slowRising = slowMA > slowMA[slopeLookback]
+extended = close > fastMA * (1.0 + maxExtPercent / 100.0)
+benchClose = request.security(benchSymbol, timeframe.period, close)
+// guard the divisions: a young chart or a bad benchmark symbol leaves these na,
+// and na comparisons are false, which would silently block every entry
+stockRet = close[rsLookback] > 0 ? close / close[rsLookback] : na
+benchRet = benchClose[rsLookback] > 0 ? benchClose / benchClose[rsLookback] : na
+relStrength = na(stockRet) or na(benchRet) ? na : stockRet / benchRet
+rsOk = not useRelStrength or (not na(relStrength) and relStrength > 1.0)
+risingOk = not useRisingSlow or slowRising
+extOk = not useNotExtended or not extended
+entryQuality = risingOk and extOk and rsOk
+
+uptrend = fastMA > slowMA and close > slowMA
+regimeOk = useVolRegime ? atrRank <= atrRankMax : true
+buySignal = uptrend and regimeOk and entryQuality and pullbackRSI < rsiThreshold
+
+stopDistance = stopAtrMult * atrValue
+riskCapital = strategy.equity * riskPercent / 100.0
+riskPerUnit = stopDistance * syminfo.pointvalue
+rawQty = riskPerUnit > 0 ? riskCapital / riskPerUnit : 0.0
+affordableQty = close > 0 ? strategy.equity / close : 0.0
+fixedQty = close > 0 ? dollarsPerTrade / close : 0.0
+targetQty = useFixedDollar ? fixedQty : rawQty
+plannedQty = math.floor(math.min(targetQty, affordableQty))
+plannedRisk = plannedQty * stopDistance * syminfo.pointvalue
+// math.floor() silently skips the entry when the target is under one share, and it
+// skips the HIGHEST-ATR names first, which quietly removes exactly the symbols this
+// configuration gains most from. Plotted so it is visible rather than invisible.
+sizeSkipped = buySignal and strategy.position_size <= 0 and plannedQty < 1
+
+var float entryStopDistance = na
+var float peakHigh = na
+var bool hasScaled = false
+
+if buySignal and strategy.position_size <= 0 and plannedQty >= 1
+    strategy.entry("Long", strategy.long, qty=plannedQty)
+    entryStopDistance := stopDistance
+    peakHigh := high
+    hasScaled := false
+
+// State is derived from strategy.opentrades rather than tracked by hand: with
+// process_orders_on_close the entry fills after this bar's script run, so any
+// "reset when flat" block would wipe entry state on the entry bar itself and
+// silently disable every exit for the life of the trade.
+inPosition = strategy.opentrades > 0
+entryIndex = inPosition ? strategy.opentrades.entry_bar_index(0) : na
+if inPosition
+    peakHigh := math.max(nz(peakHigh, high), high)
+
+baseStopLevel = na(entryStopDistance) ? na : strategy.position_avg_price - entryStopDistance
+// Once the scale-out is booked the runner should not be allowed to drag the blended
+// trade negative, so the stop ratchets up to the entry price. Note this is breakeven
+// on PRICE, not after costs: commission and slippage make it a small net loss.
+stopLevel = hasScaled and useBreakevenStop and not na(baseStopLevel) ? math.max(baseStopLevel, strategy.position_avg_price) : baseStopLevel
+chandelierLevel = na(peakHigh) ? na : peakHigh - trailAtrMult * atrValue
+heldBars = na(entryIndex) ? 0 : bar_index - entryIndex
+canManage = inPosition and heldBars > 0
+
+if inPosition and not na(stopLevel)
+    strategy.exit("Hard stop", "Long", stop=stopLevel)
+
+scaleSignal = canManage and not hasScaled and scalePercent > 0 and close > snapbackMA
+if scaleSignal
+    strategy.close("Long", qty_percent=scalePercent, comment="Scale at snapback")
+    hasScaled := true
+
+trailSignal = canManage and hasScaled and not na(chandelierLevel) and close < chandelierLevel
+trendSignal = canManage and close < slowMA
+timeSignal = canManage and (hasScaled ? heldBars >= maxHoldRunner : heldBars >= maxHoldBeforeScale)
+exitSignal = trailSignal or trendSignal or timeSignal
+if exitSignal
+    exitReason = trailSignal ? "Chandelier trail" : trendSignal ? "Trend break" : "Max hold"
+    strategy.close("Long", comment=exitReason)
+
+// The hard stop fills broker-side through strategy.exit, so it never raises exitSignal
+// and a stopped-out trade would leave no mark on the chart. Detect the touch directly.
+stopHit = canManage and not na(stopLevel) and low <= stopLevel
+
+plot(fastMA, "50-day MA", color=color.new(color.blue, 0), linewidth=2)
+plot(slowMA, "200-day MA", color=color.new(color.orange, 0), linewidth=2)
+plot(snapbackMA, "Snapback MA", color=color.new(color.gray, 45), linewidth=1)
+plot(inPosition ? stopLevel : na, "Hard stop", color=color.new(color.red, 20), style=plot.style_linebr, linewidth=1)
+plot(inPosition and hasScaled ? chandelierLevel : na, "Chandelier trail", color=color.new(color.purple, 10), style=plot.style_linebr, linewidth=2)
+plotshape(uptrend and regimeOk and pullbackRSI < rsiThreshold and not entryQuality and strategy.position_size <= 0, title="Filtered out", text="SKIP", style=shape.labelup, location=location.belowbar, color=color.new(color.gray, 40), textcolor=color.white, size=size.tiny)
+bgcolor(uptrend ? color.new(color.green, 92) : color.new(color.red, 94), title="Trend regime")
+plotshape(buySignal and strategy.position_size <= 0 and plannedQty >= 1, title="BUY", text="BUY", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), textcolor=color.white, size=size.small)
+plotshape(sizeSkipped, title="SKIPPED (size < 1 share)", text="SIZE", style=shape.labelup, location=location.belowbar, color=color.new(color.gray, 20), textcolor=color.white, size=size.tiny)
+plotshape(scaleSignal, title="SELL PARTIAL", text="SELL PT", style=shape.labeldown, location=location.abovebar, color=color.new(color.blue, 0), textcolor=color.white, size=size.tiny)
+plotshape(exitSignal and not stopHit, title="SELL ALL", text="SELL", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), textcolor=color.white, size=size.small)
+plotshape(stopHit, title="SELL ON STOP", text="SELL", style=shape.labeldown, location=location.abovebar, color=color.new(color.maroon, 0), textcolor=color.white, size=size.small)
+
+if buySignal and strategy.position_size <= 0 and plannedQty >= 1
+    alert("BUY: RSI(2) pullback inside 50/200 uptrend. Stop " + str.tostring(stopAtrMult) + " ATR.", alert.freq_once_per_bar_close)
+if sizeSkipped
+    alert("SKIPPED: signal fired but the position rounds to under one share. Raise capital or dollarsPerTrade.", alert.freq_once_per_bar_close)
+if scaleSignal
+    alert("SELL PART: selling " + str.tostring(scalePercent) + "% into the snapback above the short MA; trailing the remainder.", alert.freq_once_per_bar_close)
+if exitSignal and not stopHit
+    alert("SELL ALL: chandelier trail, trend break, or max hold reached.", alert.freq_once_per_bar_close)
+if stopHit
+    alert("SELL ALL (stop): hard stop touched at " + str.tostring(math.round_to_mintick(stopLevel)) + ".", alert.freq_once_per_bar_close)
+
+alertcondition(buySignal and strategy.position_size <= 0, "TDPS v3 BUY", "Pullback entry inside uptrend")
+alertcondition(exitSignal or stopHit, "TDPS v3 SELL", "Exit signal")
