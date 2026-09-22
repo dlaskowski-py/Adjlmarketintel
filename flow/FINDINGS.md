@@ -646,3 +646,48 @@ inflated of the two — and it still loses. The true small-cap result is worse t
 shown. For the same reason the equal-weight buy-and-hold columns ($1,954,042 for
 the 59 large, $762,570 for the 16 small) are not achievable returns and should not
 be read as benchmarks; SPY is the honest one.
+
+## Universe at 75 large caps — broader is worse
+
+Small-cap data removed (`data/smallcap/` deleted). The large-cap set was taken
+from 59 to 75 by adding 16 more mega/large caps with full 1999-2026 history:
+ADBE AIG APD CAT CL COF CSX DUK FDX GD LLY MDT MO PEP SO WFC. Each was verified
+symbol-by-symbol against a live quote.
+
+**A mapping hazard worth recording:** the saved MCP payloads carry no ticker, and
+the API wrote CL's result file *after* COF's despite CL being requested first.
+Sorting payload files by timestamp would therefore have silently swapped two
+symbols. Map by the order results are returned, and verify every file against a
+quote before use.
+
+### v3, 75 large caps, $50,000 account
+
+| slots | full history | CAGR | maxDD | 2023-2026 | CAGR |
+|---|---|---|---|---|---|
+| 10 | $140,144 | 4.04% | 30.2% | $67,623 | 8.54% |
+| 20 | $156,994 | 4.49% | 22.5% | $67,042 | 8.28% |
+| 30 | **$170,950** | 4.83% | 15.9% | **$70,189** | 9.64% |
+| 40 | $147,169 | 4.23% | 12.1% | $65,249 | 7.49% |
+| **59 names, 20 slots** | **$202,879** | **5.52%** | 22.8% | **$78,556** | 13.04% |
+| SPY buy and hold | $402,648 | 8.34% | 55.2% | $104,954 | 22.27% |
+
+**Widening the universe diluted the edge.** The best 75-name configuration
+($170,950 at 30 slots) still trails the 59-name set at 20 slots ($202,879), and
+the same holds in 2023-2026.
+
+Diagnosis — per-name expectancy of the two groups:
+
+    original 59   mean +0.476%   45/59 names positive   median ATR 2.08% of price
+    added 16      mean +0.270%   10/16 names positive   median ATR 2.00% of price
+
+The six negative additions are defensives: MDT -0.345%, AIG -0.156%, DUK -0.142%,
+SO -0.045%, CL -0.032%, COF -0.015%. The strong ones are cyclicals and tech:
+ADBE +1.117%, CSX +0.812%, FDX +0.705%, GD +0.631%, CAT +0.620%, APD +0.524%.
+ATR does not separate the groups (2.00% vs 2.08%), so this is not simply a
+volatility effect — utilities, staples and insurers do not produce the follow-
+through the trail and runner need, regardless of how much they move.
+
+**Caveat on preferring 59 over 75.** The 59 were not selected for performance,
+but choosing them *now, because they backtest better*, is a post-hoc decision on
+the same data. The original set is growth- and tech-heavy across 27 years that
+favoured growth. Treat "59 beats 75" as a measurement, not a validated rule.
