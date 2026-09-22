@@ -441,3 +441,53 @@ One asset, roughly five independent cycles. BTC also survived — testing a
 filter on the crypto that went from five cents to eighty thousand dollars says
 nothing about the ones that went to zero, and the buy-and-hold benchmark is
 itself flattered by that survival. One strong case, not a law.
+
+## TDPS v2 — independent replication (first signal to beat its blind control)
+
+Re-implemented "Trend Pullback Swing v2 [QuantPad]" from its Pine source and ran
+it on the 59-name daily set. Script: `backtest/tdps_replication.py`.
+
+Entry: 50MA>200MA and close>200MA and RSI(2)<15. Exits as in the Pine: 3-ATR
+stop, 70% scale when close crosses back above the 10MA, stop to breakeven on the
+remainder, 3-ATR chandelier trail, trend break below the 200MA, 15/40-bar caps.
+Costs 0.05%/side plus 5 ticks, fills at the NEXT OPEN.
+
+| | per position | win | PF |
+|---|---|---|---|
+| TDPS, 2023-2026 | **+0.473%** | 63.1% | 1.35 |
+| TDPS, full history | +0.200% | 61.9% | 1.15 |
+| control A: trend only, no RSI | +0.067% / -0.074% | 54.9% | 1.06 / 0.94 |
+| control B: RSI<15, no trend | +0.186% / -0.059% | 53.9% | 1.17 / 0.96 |
+| control C: trend + RSI<50 | +0.083% / -0.004% | 56.9% | 1.07 / 1.00 |
+
+Author's own holdout (110 names, never used for selection) reported 59.6% win,
++0.605% expectancy, PF 1.35. The PF matches exactly and win rate is within 3.5pp,
+on a universe and an implementation that had nothing to do with his.
+
+**Neither leg works alone.** Trend-only and RSI-only are both negative over the
+full history; together they are positive. Depth matters monotonically — RSI<50
+is flat, RSI<15 is not. This is an interaction, not a single fitted parameter,
+which is why it does not collapse the way the 12 signals in the sections above did.
+
+**Cluster-adjusted.** Entries cluster on market-wide down days (up to 23 names
+on one date), the same trap that voided the McClellan result. Adjusting:
+
+    full history   stock-day t=4.63 -> by-date t=2.22
+    2023-2026      stock-day t=3.63 -> by-date t=2.62
+    paired same-date difference vs control A: +0.138pp t=2.25 (full),
+                                              +0.422pp t=2.55 (2023-2026)
+
+The paired test is the strongest form available here: it compares TDPS against
+the blind control *on the same dates*, so market-wide moves cancel. It survives.
+Significant, but at t~2.2-2.6 rather than the t=4.6 the naive count suggests.
+
+**Fills are not the vulnerability.** `process_orders_on_close` decides and fills
+on the same close, which normally flatters a buy-the-dip entry. Moving the fill
+to the next open *helped* in 2023-2026 (+0.334% -> +0.473%) and cost 0.013pp over
+the full history. The overnight drift documented above works in this entry's favour.
+
+**Leg vs position accounting.** The 70% scale-out is a separate closed trade in
+TradingView, so the Strategy Tester's figures are leg-level: +0.97% expectancy
+and 48.4% win against +0.21% and 62.9% per position. Do not reconcile a pooled
+position-level backtest against the Strategy Tester panel — they count different
+things, and the leg-level expectancy is ~4.6x the position-level one.
