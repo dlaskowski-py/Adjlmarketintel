@@ -691,3 +691,71 @@ through the trail and runner need, regardless of how much they move.
 but choosing them *now, because they backtest better*, is a post-hoc decision on
 the same data. The original set is growth- and tech-heavy across 27 years that
 favoured growth. Treat "59 beats 75" as a measurement, not a validated rule.
+
+## Bear-market tests: two earlier conclusions corrected
+
+Script: `backtest/tdps_eras.py`. Sector split is explicit — defensive = consumer
+staples, utilities, health care, telecom (21 names); cyclical = tech,
+discretionary, industrials, financials, energy, materials (54 names).
+
+### 1. The "defensives lack follow-through" diagnosis was wrong
+
+Per-position expectancy, v3 config:
+
+| era | defensive | cyclical |
+|---|---|---|
+| 2000-2002 dot-com | -0.462% (t=-0.95) | **-0.658%** (t=-1.59) |
+| 2022 rate shock | -0.892% (t=-2.56) | **-1.533%** (t=-2.12) |
+| full history | +0.096% (t=0.79) | **+0.542%** (t=4.94) |
+
+The ranking **reverses** in both bear eras: defensives lose less, exactly as the
+caveat in the previous section warned it might. So the earlier causal claim —
+that utilities, staples and insurers "do not produce the follow-through the trail
+and runner need" — is withdrawn. The mechanism is simpler and duller: this
+strategy is a long-biased, amplified bet on whatever the underlying did, so it
+ranks sectors in the same order the sectors themselves ranked. Cyclicals beat
+defensives over 27 years; defensives beat cyclicals in busts; the strategy mirrors
+both. Note also that defensives are not significant on their own over the full
+history (t=0.79) — the entire measured edge lives in the cyclical half.
+
+**Dropping defensives from the universe is therefore a sector bet on growth, not
+a strategy improvement.**
+
+### 2. v3 is not strictly better than v2 — it is more directionally levered
+
+All 75 large caps, per position:
+
+| era | v2 shipped | v3 | delta |
+|---|---|---|---|
+| 2000-2002 dot-com | -0.393% | -0.593% | **-0.201pp** |
+| 2008-2009 GFC | -1.381% | -2.104% | **-0.723pp** |
+| 2022 rate shock | -1.020% | -1.247% | **-0.227pp** |
+| 2023-2026 | +0.371% | +0.699% | +0.328pp |
+| full history | +0.183% (t=2.23) | +0.411% (t=4.67) | +0.228pp |
+
+**v3 wins in every rising market and loses in every falling one.** The wider stop
+and smaller scale-out keep more of the position on for longer, which amplifies
+direction in both directions. Within bear windows v3's drawdown is consistently
+worse (20.1% vs 15.9% in 2000-2002, 18.0% vs 13.3% in 2008-09, 16.1% vs 12.6% in
+2022). The 70% scale-out was doing real defensive work, not only buying win rate
+— that part of the earlier write-up understated it.
+
+What survives: over the **full** sample v3 still returns 2.3x v2 ($156,994 vs
+$68,066 on $50,000 at 20 slots) at an **identical** max drawdown (22.5% vs 22.4%),
+because v2's losses grind out across the whole period while v3's concentrate in
+busts. v3 remains the better configuration for an investor who holds through
+cycles; it is the worse one for an investor who cannot sit through a bust.
+
+### 3. The strategy lost to buy-and-hold in two of three busts
+
+Equal-weight buy and hold of the same 75 names, same windows, against the
+strategy at 20 slots on $50,000:
+
+    2000-2002    hold $47,134   v2 $42,622   v3 $40,298    hold wins
+    2008-2009    hold $36,520   v2 $43,373   v3 $40,950    STRATEGY wins
+    2022         hold $45,402   v2 $43,985   v3 $42,374    hold wins
+
+Only 2008-2009 — the one long, sustained decline — did the 50/200 filter earn its
+keep. In the 2000-2002 and 2022 drawdowns the system lost more than simply
+holding. A trend filter pays in persistent downtrends and costs in choppy ones,
+which is the textbook result and is what these three windows show.
