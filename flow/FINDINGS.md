@@ -591,3 +591,58 @@ same time-in-market conclusion every other positive result in this file reached.
 Expectancy, aggregate trade profit and CAGR are three different numbers. The
 earlier "2.1x aggregate profit" figure for v3 is a sum of trade returns, not a
 return; the CAGR improvement is 2.36% -> 5.62%.
+
+## Universe: funds removed, small caps added — and they do not work
+
+**Funds.** The only fund ever in `data/` was SPY, and every backtest in this file
+already excluded it (the universe filter drops it). The other 59 are all common
+stock. Nothing to remove.
+
+**Small caps added.** 16 names fetched to `data/smallcap/`, full history
+1999-2026, each verified symbol-by-symbol against a live quote before use
+(the saved MCP payloads carry no ticker, so a mis-mapped file would have
+corrupted the run silently). Market capitalisation confirmed via COMPANY_OVERVIEW:
+
+    JACK  $256M   UTMD  $237M   CAL   $405M   PZZA  $668M
+    ASTE  $958M   CBRL  $1.00B  TNC   $1.12B  WABC  $1.37B
+    AIN   $1.68B  TRMK  $2.70B  SHOO  $3.13B  KAI   $3.14B
+    SXI   $3.22B  INDB  $3.85B  CATY  $4.10B  POWL  $6.83B
+
+Median ~$1.5B against the large-cap set's mega-cap S&P 100 membership.
+
+### v3 on each sleeve, $50,000 account, whole shares
+
+| | full history | CAGR | maxDD | 2023-2026 | CAGR |
+|---|---|---|---|---|---|
+| large cap, 59 names, 20 slots | **$202,879** | 5.52% | 22.8% | **$78,556** | 13.04% |
+| small cap, 16 names, 10 slots | **$62,321** | 0.85% | 22.9% | **$51,832** | 0.99% |
+| combined, 75 names, 20 slots | $153,021 | 4.39% | 28.1% | $73,690 | 11.10% |
+| SPY buy and hold | $402,648 | 8.34% | 55.2% | $104,954 | 22.27% |
+
+**Small caps do not work here and adding them makes the portfolio worse.** The
+combined sleeve underperforms large-cap-only in both eras and carries a higher
+drawdown (28.1% vs 22.8%), because the small-cap signals consume slots that the
+large-cap names would have used better.
+
+**It is not purely a cost artifact**, though costs are part of it — the small-cap
+median share price is $35.05 against $61.47, so 5 ticks costs 0.143% per side
+instead of 0.081%. Stripping costs entirely still leaves small caps far behind:
+
+    full costs   large $203,841   small $62,175
+    half costs   large $340,839   small $97,269
+    zero costs   large $573,882   small $152,288
+
+That table carries a second finding: **roughly 65% of this strategy's gross
+profit is consumed by trading costs** at the large-cap sleeve (573,882 -> 203,841).
+At ~6,900 trades over the window it is extraordinarily cost-sensitive, so any
+real-world spread worse than modelled comes straight off the top.
+
+### Caveat that cuts against the whole table
+
+Both sleeves are **today's survivors**, selected in 2026 and backtested to 1999.
+Companies that were delisted, went bankrupt or were acquired are absent. Small
+caps fail at a far higher rate than mega caps, so the small-cap sleeve is the more
+inflated of the two — and it still loses. The true small-cap result is worse than
+shown. For the same reason the equal-weight buy-and-hold columns ($1,954,042 for
+the 59 large, $762,570 for the 16 small) are not achievable returns and should not
+be read as benchmarks; SPY is the honest one.
