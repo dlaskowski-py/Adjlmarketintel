@@ -1,0 +1,179 @@
+//@version=5
+// Trend-filtered pullback swing, v3 — exit geometry retuned.
+//
+// v2 -> v3 changes, each measured on 50 names (longest-history subset), next-open
+// fills, 0.05%/side commission plus 5 ticks of slippage, significance clustered by
+// entry date because entries bunch on market-wide down days:
+//
+//   1. scalePercent 70 -> 30. This is the dominant lever and v2 had it backwards.
+//      Sweeping it alone on identical entries and exits, win rate rises
+//      monotonically and expectancy falls monotonically across the whole range
+//      (0% -> +0.409%, 30% -> +0.368%, 70% -> +0.200%, 100% -> +0.073%). v2's own
+//      tooltip said 70% "maximises win rate subject to PF >= 1.3", which buys the
+//      one statistic that does not pay at ~0.022pp of expectancy per point of win.
+//   2. stopAtrMult 3.0 -> 4.5. 3.0 sat on the rising part of the curve; expectancy
+//      improves monotonically to ~5.0 ATR and only turns over near 8.0, so a stop
+//      is doing real work - it was just set inside the noise.
+//   3. trailAtrMult 3.0 -> 4.0. Same direction, smaller effect, both eras agree.
+//   4. Sizing now defaults to equal dollars per position, because that is what the
+//      portfolio results below actually measure. See SIZING.
+//
+// Combined, per position: +0.452% vs +0.200% (full history), PF 1.35 vs 1.15,
+// date-clustered t 4.79 vs 2.22. A 36-cell grid around these values (scale
+// 20/30/40 x stop 3.5-5.0 x trail 3.0-5.0) beat v2 in 36/36 cells in BOTH eras,
+// and 44 of 59 symbols improve individually - this is a plateau, not a fitted point.
+// The cost is roughly 10pp of win rate: ~52% instead of ~62%.
+//
+// WHAT THIS DOES NOT DO. Compounded as a real portfolio on a $50,000 account,
+// 20 concurrent slots, whole shares, 50 names: v3 finishes at ~$162,000 against
+// v2's ~$80,000 over 1999-2026 - but SPY buy-and-hold over the same window
+// finishes at ~$402,000. v3 is the better vehicle per unit of risk (4.61% CAGR at
+// 20.6% max drawdown, against the index's 8.34% at 55.2%) and would need roughly
+// 1.5x leverage to match the index outright. It is not an index-beating system
+// unlevered. Size the account accordingly.
+//
+// NOTE ON THE STRATEGY TESTER. A 70%/30% scale-out writes TWO closed trades into
+// TradingView's trade list, so the tester's win rate and expectancy are computed
+// over exit LEGS, not positions. On this universe that is +0.97% / 48.4% per leg
+// against +0.21% / 62.9% per position. Do not reconcile the tester panel against
+// pooled position-level statistics; they count different things.
+//
+// ONE SYMBOL IS NOT THE PORTFOLIO. With equal-dollar sizing the tester deploys
+// $2,500 of the $50,000 on whichever single symbol the chart is showing, so it
+// will report a small percentage return on total equity - that is correct, not a
+// bug. The $50,000 figures above come from running all 50 names together and
+// letting positions compete for 20 slots, which TradingView cannot simulate from
+// one chart. Judge a single symbol on its expectancy and profit factor, not on
+// its net profit.
+//
+// SIZING. Default is equal dollars per position (dollarsPerTrade), which is what
+// the portfolio simulation measures - every position equally weighted. Set it to
+// equity/slots for the portfolio you intend to run; $2,500 is 1/20th of $50,000.
+// Risk-based sizing is still available and makes dollar risk identical across
+// names, but then notional varies inversely with ATR and the pooled statistics no
+// longer describe it. initial_capital is $50,000 rather than $10,000 because at
+// $10k the math.floor() below returns 0 or 1 share on most names: MU was skipped
+// entirely and DE, ADI and GOOGL took 24-48% size errors from the rounding, which
+// silently drops the highest-ATR names from the backtest.
+strategy("Trend Pullback Swing v3 [QuantPad]", overlay=true, initial_capital=50000, pyramiding=0, default_qty_type=strategy.fixed, default_qty_value=1, commission_type=strategy.commission.percent, commission_value=0.05, slippage=5, margin_long=0, margin_short=0, process_orders_on_close=true, calc_on_every_tick=false)
+
+fastLength = input.int(50, "Fast MA length", minval=2, group="Trend filter")
+slowLength = input.int(200, "Slow MA length", minval=20, group="Trend filter")
+
+rsiLength = input.int(2, "Pullback RSI length", minval=1, group="Entry")
+rsiThreshold = input.int(15, "RSI oversold below", minval=1, maxval=50, group="Entry", tooltip="Already on a plateau - anything from 5 to 15 works and expectancy degrades above 20. Left unchanged from v2.")
+useVolRegime = input.bool(false, "Require calm ATR regime", group="Entry", tooltip="Design-set evidence only; not holdout-validated. Off by default.")
+atrRankLength = input.int(252, "ATR percentile lookback", minval=50, group="Entry")
+atrRankMax = input.float(60.0, "Max ATR percentile", minval=5.0, maxval=100.0, step=5.0, group="Entry")
+
+useFixedDollar = input.bool(true, "Size by fixed dollars per trade", group="Sizing", tooltip="On (default): equal dollars per position, which is what the pooled and portfolio statistics measure. Off: size so the initial stop costs riskPercent of equity, which equalises dollar risk but makes notional vary inversely with ATR.")
+dollarsPerTrade = input.float(2500.0, "Dollars per trade", minval=50.0, step=50.0, group="Sizing", tooltip="Set this to equity divided by the number of concurrent positions you intend to run. $2,500 is 1/20th of a $50,000 account, the configuration the portfolio results were measured on.")
+riskPercent = input.float(1.0, "Risk per trade (% of equity)", minval=0.05, maxval=25.0, step=0.05, group="Sizing", tooltip="Only used when fixed-dollar sizing is off. 1% of $50,000 = $500 lost if the 4.5-ATR stop is hit. Do NOT size so a single loss is a large fraction of the account: the win rate here is ~52%, so losing streaks are longer than v2's.")
+
+atrLength = input.int(14, "ATR length", minval=2, group="Exits")
+stopAtrMult = input.float(4.5, "Initial stop (ATR multiple)", minval=0.5, step=0.5, group="Exits", tooltip="Raised from v2's 3.0. Expectancy improves monotonically from 1.5 through ~5.0 ATR in both eras and only turns over near 8.0.")
+scalePercent = input.int(30, "Sell this % at snapback", minval=0, maxval=100, group="Exits", tooltip="Lowered from v2's 70. Expectancy falls and win rate rises monotonically as this increases, so 70 was buying win rate with return. 30 keeps most of the runner while still booking something at the snapback; 0 is marginally better on expectancy but gives up the partial entirely.")
+snapbackLength = input.int(10, "Snapback MA length", minval=2, group="Exits")
+trailAtrMult = input.float(4.0, "Chandelier trail (ATR multiple)", minval=0.5, step=0.5, group="Exits", tooltip="Raised from v2's 3.0. Plateau runs 3.0-6.0; both eras prefer the wider end.")
+useBreakevenStop = input.bool(true, "Move stop to breakeven after scaling", group="Exits", tooltip="Kept on, but v2's tooltip overstated it: on this sample it COSTS expectancy over the full history (+0.332% off vs +0.200% on) and buys ~7pp of win rate. Paired with a 30% scale it produces the best profit factor of any configuration tested (1.62 on 2023-2026), which is why it stays.")
+maxHoldBeforeScale = input.int(15, "Max bars before scaling", minval=1, group="Exits", tooltip="On a plateau - 15 and 25 are indistinguishable, 8 and below hurt. Unchanged.")
+maxHoldRunner = input.int(40, "Max bars for runner", minval=1, group="Exits")
+
+fastMA = ta.sma(close, fastLength)
+slowMA = ta.sma(close, slowLength)
+snapbackMA = ta.sma(close, snapbackLength)
+pullbackRSI = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+atrRank = ta.percentrank(atrValue, atrRankLength)
+
+uptrend = fastMA > slowMA and close > slowMA
+regimeOk = useVolRegime ? atrRank <= atrRankMax : true
+buySignal = uptrend and regimeOk and pullbackRSI < rsiThreshold
+
+stopDistance = stopAtrMult * atrValue
+riskCapital = strategy.equity * riskPercent / 100.0
+riskPerUnit = stopDistance * syminfo.pointvalue
+rawQty = riskPerUnit > 0 ? riskCapital / riskPerUnit : 0.0
+affordableQty = close > 0 ? strategy.equity / close : 0.0
+fixedQty = close > 0 ? dollarsPerTrade / close : 0.0
+targetQty = useFixedDollar ? fixedQty : rawQty
+plannedQty = math.floor(math.min(targetQty, affordableQty))
+plannedRisk = plannedQty * stopDistance * syminfo.pointvalue
+// math.floor() silently skips the entry when the target is under one share, and it
+// skips the HIGHEST-ATR names first, which quietly removes exactly the symbols this
+// configuration gains most from. Plotted so it is visible rather than invisible.
+sizeSkipped = buySignal and strategy.position_size <= 0 and plannedQty < 1
+
+var float entryStopDistance = na
+var float peakHigh = na
+var bool hasScaled = false
+
+if buySignal and strategy.position_size <= 0 and plannedQty >= 1
+    strategy.entry("Long", strategy.long, qty=plannedQty)
+    entryStopDistance := stopDistance
+    peakHigh := high
+    hasScaled := false
+
+// State is derived from strategy.opentrades rather than tracked by hand: with
+// process_orders_on_close the entry fills after this bar's script run, so any
+// "reset when flat" block would wipe entry state on the entry bar itself and
+// silently disable every exit for the life of the trade.
+inPosition = strategy.opentrades > 0
+entryIndex = inPosition ? strategy.opentrades.entry_bar_index(0) : na
+if inPosition
+    peakHigh := math.max(nz(peakHigh, high), high)
+
+baseStopLevel = na(entryStopDistance) ? na : strategy.position_avg_price - entryStopDistance
+// Once the scale-out is booked the runner should not be allowed to drag the blended
+// trade negative, so the stop ratchets up to the entry price. Note this is breakeven
+// on PRICE, not after costs: commission and slippage make it a small net loss.
+stopLevel = hasScaled and useBreakevenStop and not na(baseStopLevel) ? math.max(baseStopLevel, strategy.position_avg_price) : baseStopLevel
+chandelierLevel = na(peakHigh) ? na : peakHigh - trailAtrMult * atrValue
+heldBars = na(entryIndex) ? 0 : bar_index - entryIndex
+canManage = inPosition and heldBars > 0
+
+if inPosition and not na(stopLevel)
+    strategy.exit("Hard stop", "Long", stop=stopLevel)
+
+scaleSignal = canManage and not hasScaled and scalePercent > 0 and close > snapbackMA
+if scaleSignal
+    strategy.close("Long", qty_percent=scalePercent, comment="Scale at snapback")
+    hasScaled := true
+
+trailSignal = canManage and hasScaled and not na(chandelierLevel) and close < chandelierLevel
+trendSignal = canManage and close < slowMA
+timeSignal = canManage and (hasScaled ? heldBars >= maxHoldRunner : heldBars >= maxHoldBeforeScale)
+exitSignal = trailSignal or trendSignal or timeSignal
+if exitSignal
+    exitReason = trailSignal ? "Chandelier trail" : trendSignal ? "Trend break" : "Max hold"
+    strategy.close("Long", comment=exitReason)
+
+// The hard stop fills broker-side through strategy.exit, so it never raises exitSignal
+// and a stopped-out trade would leave no mark on the chart. Detect the touch directly.
+stopHit = canManage and not na(stopLevel) and low <= stopLevel
+
+plot(fastMA, "50-day MA", color=color.new(color.blue, 0), linewidth=2)
+plot(slowMA, "200-day MA", color=color.new(color.orange, 0), linewidth=2)
+plot(snapbackMA, "Snapback MA", color=color.new(color.gray, 45), linewidth=1)
+plot(inPosition ? stopLevel : na, "Hard stop", color=color.new(color.red, 20), style=plot.style_linebr, linewidth=1)
+plot(inPosition and hasScaled ? chandelierLevel : na, "Chandelier trail", color=color.new(color.purple, 10), style=plot.style_linebr, linewidth=2)
+bgcolor(uptrend ? color.new(color.green, 92) : color.new(color.red, 94), title="Trend regime")
+plotshape(buySignal and strategy.position_size <= 0 and plannedQty >= 1, title="BUY", text="BUY", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), textcolor=color.white, size=size.small)
+plotshape(sizeSkipped, title="SKIPPED (size < 1 share)", text="SIZE", style=shape.labelup, location=location.belowbar, color=color.new(color.gray, 20), textcolor=color.white, size=size.tiny)
+plotshape(scaleSignal, title="SELL PARTIAL", text="SELL PT", style=shape.labeldown, location=location.abovebar, color=color.new(color.blue, 0), textcolor=color.white, size=size.tiny)
+plotshape(exitSignal and not stopHit, title="SELL ALL", text="SELL", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), textcolor=color.white, size=size.small)
+plotshape(stopHit, title="SELL ON STOP", text="SELL", style=shape.labeldown, location=location.abovebar, color=color.new(color.maroon, 0), textcolor=color.white, size=size.small)
+
+if buySignal and strategy.position_size <= 0 and plannedQty >= 1
+    alert("BUY: RSI(2) pullback inside 50/200 uptrend. Stop " + str.tostring(stopAtrMult) + " ATR.", alert.freq_once_per_bar_close)
+if sizeSkipped
+    alert("SKIPPED: signal fired but the position rounds to under one share. Raise capital or dollarsPerTrade.", alert.freq_once_per_bar_close)
+if scaleSignal
+    alert("SELL PART: selling " + str.tostring(scalePercent) + "% into the snapback above the short MA; trailing the remainder.", alert.freq_once_per_bar_close)
+if exitSignal and not stopHit
+    alert("SELL ALL: chandelier trail, trend break, or max hold reached.", alert.freq_once_per_bar_close)
+if stopHit
+    alert("SELL ALL (stop): hard stop touched at " + str.tostring(math.round_to_mintick(stopLevel)) + ".", alert.freq_once_per_bar_close)
+
+alertcondition(buySignal and strategy.position_size <= 0, "TDPS v3 BUY", "Pullback entry inside uptrend")
+alertcondition(exitSignal or stopHit, "TDPS v3 SELL", "Exit signal")
