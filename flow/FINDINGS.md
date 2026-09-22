@@ -852,3 +852,54 @@ filled by a gap below the intended stop price**, the worst 20.7% below it. So
 roughly one stop in six does not cap the loss where the position sizing assumed
 it would — which is the specific reason "risk management makes this safe" does
 not hold, and why the -27.15% trade exists at all on a 3-ATR stop.
+
+## Aggressive mode on 2022-2026 — the window cannot answer the question
+
+    2022-01-01 -> 2026-09-11 (4.69 years), 75 large caps, $50,000, 20 slots
+
+    mode            n     win   avg win   avg loss    exp      t    $50,000 ->   maxDD
+    Conservative  2098   61.0%   +2.64%    -3.69%   +0.172%  1.39    $53,922    14.4%
+    Aggressive     521   25.0%  +32.65%    -6.09%   +3.576%  1.68    $47,957    24.1%
+    SPY                                                              $85,029    24.5%
+
+Aggressive **loses money** over this window despite a +3.576% per-trade
+expectancy. Two defects in the test explain most of the gap, and both bite the
+long-hold configuration specifically.
+
+**1. Slot starvation.** Year-long holds occupy slots, so capacity binds:
+
+    20 slots   331 of 521 trades taken (63.5%)   -> $47,812
+    40 slots   481 of 521 taken (92.3%)          -> $68,115
+    80 slots   521 of 521 taken (100%)           -> $61,055
+
+At 20 slots more than a third of the signals are never traded. The headline
+number is partly a capacity artifact, not a statement about the strategy.
+
+**2. Truncation.** The backtester counts only completed trades. A trade entered
+in 2026 can appear only if it already closed, and at a 250-bar cap the only way
+to close inside nine months is to be stopped out — so the sample keeps the
+losers and silently excludes the winners still open:
+
+    entry year    n    win rate   median hold
+    2022        135     13.3%        37d
+    2023        107     23.4%        34d
+    2024        114     42.1%       130d
+    2025        115     33.0%        63d
+    2026         50      2.0%        30d      <- artifact, not a result
+
+Restricting to entries with a full year of runway (before 2025-09-01):
+n=432, win 28.2%, expectancy +4.42%, $52,252 at 20 slots and **$61,103 at 80**.
+
+**3. Too few independent outcomes.** Median hold 46 days against a 1,712-day
+window is about 37 non-overlapping holding periods. For a configuration whose
+return depends on rare large winners (25% hit rate, +32.65% average win), 37
+generations is nowhere near enough — t=1.68, not significant.
+
+**Conclusion.** Best-corrected, Aggressive returns roughly $61,000 against
+Conservative's ~$54,000 and SPY's $85,029 over this window: modestly ahead of
+Conservative, well behind the index. The genuinely interpretable pieces are the
+years with full runway — 2022 was bad (-4.63% per trade, 13.3% win), 2024 and
+2025 were good (+6.83%, +11.24%). A strategy that holds for up to a year cannot
+be evaluated on 4.7 years, and the full-history figure ($640,803) carries the
+same 20-slot capacity constraint, so it is the comparison that is meaningful
+there rather than the absolute level.
