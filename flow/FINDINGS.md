@@ -491,3 +491,68 @@ TradingView, so the Strategy Tester's figures are leg-level: +0.97% expectancy
 and 48.4% win against +0.21% and 62.9% per position. Do not reconcile a pooled
 position-level backtest against the Strategy Tester panel — they count different
 things, and the leg-level expectancy is ~4.6x the position-level one.
+
+## TDPS v2 — what improves it
+
+Swept each input independently on the 59-name set, next-open fills, realistic
+costs. Script: `backtest/tdps_sweeps.py`. t is always clustered by entry date.
+
+**The scale-out percentage is the dominant lever, and it is set backwards.**
+Sweeping it alone over the full history, holding everything else fixed:
+
+| scale | win | expectancy | PF |
+|---|---|---|---|
+| 0% | 49.0% | +0.409% | 1.19 |
+| 30% | 52.2% | +0.368% | 1.27 |
+| 50% | 58.9% | +0.284% | 1.21 |
+| **70% (shipped)** | **61.9%** | **+0.200%** | **1.15** |
+| 100% | 64.0% | +0.073% | 1.06 |
+
+Win rate rises monotonically and expectancy falls monotonically across the whole
+range, in both eras. Same entries, same exits — the only thing changing is how
+much is booked at the snapback. The script's own tooltip says 70% was chosen to
+"maximise win rate subject to PF >= 1.3", which is an explicit purchase of the
+one statistic that does not pay, at roughly 0.022pp of expectancy per point of
+win rate.
+
+**The initial stop is too tight.** 3.0 ATR sits on the rising part of the curve;
+expectancy improves monotonically to ~4.5-5.0 ATR and only turns over at 8.0, so
+a stop is doing real work — it is just set inside the noise.
+
+    full history   3.0 -> +0.200% t=2.22 | 4.5 -> ~+0.25% | 5.0 -> +0.256% t=3.50 | 8.0 -> +0.253%
+    2023-2026      3.0 -> +0.473%        | 5.0 -> +0.518%                          | 8.0 -> +0.474%
+
+**Chandelier trail** improves mildly from 3.0 to 4.0-6.0 ATR in both eras.
+**RSI(2)<15 and the 15/40 bar caps are already on plateaus** — leave them.
+
+**Breakeven stop** costs expectancy over the full history (+0.332% off vs
++0.200% on) but buys ~7pp of win rate; the tooltip's claim of "no statistically
+detectable cost" does not hold on this sample. Worth keeping anyway once the
+scale is cut to 30%, where it produces the best profit factor of anything tested.
+
+### Recommended configuration (scale 30%, stop 4.5 ATR, trail 4.0 ATR, breakeven on)
+
+| | shipped | recommended |
+|---|---|---|
+| full history | +0.200%, 61.9% win, PF 1.15, t=2.22 | **+0.452%, 52.1% win, PF 1.35, t=4.79** |
+| 2023-2026 | +0.473%, 63.1% win, PF 1.35, t=2.62 | **+0.868%, 57.0% win, PF 1.62, t=2.76** |
+
+Aggregate profit over the full history rises 2.1x (9470 x 0.200 -> 8895 x 0.452).
+A 36-cell grid (scale 20/30/40, stop 3.5-5.0, trail 3.0-5.0) beat the shipped
+config in **36/36 cells in both eras**, so this is a plateau, not a fitted point.
+Per symbol it is better on **44 of 59 names**, median +0.184pp — but the mean
+gain exceeds the median, so it is weighted toward high-ATR names (MU +2.10pp,
+TSLA +1.68pp, NVDA +1.13pp) where the wider stop matters most.
+
+The cost is 10pp of win rate over the full history, 6pp recent.
+
+### Tested and NOT adopted
+
+- **Market regime filter** (require SPY 50>200 on the entry date): helps the full
+  history (+0.452% -> +0.506%) but hurts 2023-2026 (+0.868% -> +0.828%), and only
+  removes 12% of entries. The per-stock trend filter already does this job.
+- **Signal clustering** (how many of the 59 names fire the same day): the 4-7
+  bucket is best in both eras (full +0.640% t=4.59; recent +1.282% PF 2.06), but
+  the 1-name and 8+ buckets are both worse, and the 2-3 bucket reverses ordering
+  between eras. A non-monotone hump across arbitrary buckets is the shape a
+  spurious result takes. Not established — would need a continuous test.
