@@ -759,3 +759,52 @@ Only 2008-2009 — the one long, sustained decline — did the 50/200 filter ear
 keep. In the 2000-2002 and 2022 drawdowns the system lost more than simply
 holding. A trend filter pays in persistent downtrends and costs in choppy ones,
 which is the textbook result and is what these three windows show.
+
+## v4 on 2022-2026 — and a correction to the v4 claim
+
+2022-01-01 to 2026-09-21: one full cycle, a bear year then three up years.
+75 large caps, 20 slots, $50,000, next-open fills, full costs.
+
+| config | n | expectancy | t | $50,000 -> | maxDD | deployed |
+|---|---|---|---|---|---|---|
+| v2 base, no filters | 2098 | +0.172% | 1.39 | $53,499 | 14.5% | 85% |
+| v3 exits, no filters | 1962 | +0.429% | 2.00 | $57,459 | 18.0% | — |
+| **v4 A+C+F, v2 exits** | 1200 | +0.312% | **0.56** | $57,649 | 10.8% | 67% |
+| v4 A+C+F, v3 exits | 1133 | +0.516% | 1.19 | $61,483 | 15.8% | — |
+| SPY buy and hold | — | — | — | **$85,029** | 24.5% | 100% |
+| equal-weight hold, 75 names | — | — | — | **$93,856** | — | 100% |
+
+Two things to take from this.
+
+**1. Every variant loses badly to simply holding.** $57,649 against SPY's $85,029
+over the same 4.7 years — roughly 3% CAGR against 12%. The earlier finding that
+this system does not beat buy-and-hold is not an artifact of the 1999-2026 window.
+
+**2. The v4 entry filters do not survive a like-for-like test, and the previous
+section overstated them.** The pooled comparison (+0.259% vs +0.192% on the full
+history) is confounded: v4 trades a *different set of dates*, so pooled means
+compare different market conditions, not different entry quality. The paired
+same-date test controls for that:
+
+    paired v4 - v2, 2022-2026    537 shared dates   -0.074pp   t = -0.64
+    paired v4 - v2, full history 2810 shared dates  +0.052pp   t = +1.24
+    bootstrap 95% CI, 2022-2026: [-0.298pp, +0.148pp]; v4 ahead in 25% of resamples
+
+Decomposing where the pooled gap came from:
+
+    entries the filters KEPT vs REJECTED    full +0.035pp    2022-2026 +0.037pp
+    dates only the unfiltered version trades  full +0.064% (vs +0.216% on shared dates)
+                                              2022-2026 +0.209% (vs +0.163% on shared)
+
+The filters' ability to tell a good entry from a bad one is worth about
+**0.035pp** — nearly nothing. Most of the apparent full-history gain came from
+skipping whole *dates* that were worse on average (+0.064% against +0.216%), i.e.
+regime avoidance rather than entry quality. **And in 2022-2026 that reversed: the
+dates v4 skipped were the better ones** (+0.209% against +0.163%).
+
+**So the headline "better entries, not deeper losses" is withdrawn.** v4's lower
+drawdown (10.8% against 14.5%) is mostly lower *exposure* — capital deployed falls
+from 85% to 67%. Holding less naturally draws down less; that is position sizing
+wearing the costume of signal quality. The three filters are defensible as
+regime/exposure controls, and they did no harm, but they are not a demonstrated
+improvement in picking entries and they should not be sold as one.
