@@ -903,3 +903,32 @@ years with full runway — 2022 was bad (-4.63% per trade, 13.3% win), 2024 and
 be evaluated on 4.7 years, and the full-history figure ($640,803) carries the
 same 20-slot capacity constraint, so it is the comparison that is meaningful
 there rather than the absolute level.
+
+## Data-integrity hazard: the API reuses payload filenames
+
+While refreshing to 2026-10-08, two symbols were written to the SAME saved
+payload filename twice: AIG/AMD shared `...888453` and GD/GE shared `...011361`.
+The second response overwrites the first, so one symbol's file silently receives
+the other's entire price history.
+
+The first collision was caught by a 5% price-continuity check on the overlap bar.
+The second was NOT: GD closed 332.34 and GE 317.89 on 09-29, only 4.5% apart, so
+both passed and **GD's file was overwritten with GE's data**. It was found only by
+auditing every file's 09-29 close against values recorded independently from
+GLOBAL_QUOTE the previous day.
+
+Two rules follow, now implemented in the refresh helpers:
+
+1. **The overlap bar must match to rounding, not to a tolerance.** It comes from
+   the same source, so the guard is 0.2%, not 5%. A loose tolerance passes exactly
+   the collisions that matter — two similarly priced names.
+2. **Audit the whole set against independently captured prices after any bulk
+   refresh** (`scratchpad/audit.py` pattern: compare each file's overlap close to
+   a separately recorded quote). Per-merge guards catch most of it; only the audit
+   proves it.
+
+Also noted: `data/BTC_daily.csv` came from a different source than Alpha Vantage's
+DIGITAL_CURRENCY_DAILY — the 2026-09-21 close differed by 5.8% (81,820.97 stored
+against 86,594.94). Splicing the two would have produced a fake 5.8% gap, so the
+series was replaced wholesale from the single source and the old file kept as
+`BTC_daily.csv.prev-source`. Never splice two price sources into one series.
