@@ -932,3 +932,41 @@ DIGITAL_CURRENCY_DAILY — the 2026-09-21 close differed by 5.8% (81,820.97 stor
 against 86,594.94). Splicing the two would have produced a fake 5.8% gap, so the
 series was replaced wholesale from the single source and the old file kept as
 `BTC_daily.csv.prev-source`. Never splice two price sources into one series.
+
+## Reporting buySignal is not reporting a BUY marker
+
+Every TDPS signal list earlier in this session was computed from the entry
+condition alone. The Pine script does not draw a marker on that condition. It
+draws on three AND-ed terms:
+
+    plotshape(buySignal and strategy.position_size <= 0 and plannedQty >= 1, ...)
+
+**Gate 1 — `strategy.position_size <= 0`.** TDPS holds 12-40 bars and
+`pyramiding=0`, so most oversold readings occur while the strategy is already
+long. Those produce no marker and no trade. On the 2026-10-09 bar the entry
+condition was true on nine names; seven of them were mid-trade:
+
+    AMAT  holding since 09-14 (19 bars)   NVDA  since 09-10 (21 bars)
+    AMD   since 08-19 (36 bars)           QCOM  since 10-01 (6 bars)
+    DE    since 10-07 (2 bars)            TXN   since 09-17 (16 bars)
+    INTC  since 10-05 (4 bars)
+
+A "did it fire in the last N bars" lookback does NOT substitute for replaying
+position state — the runner survives up to 40 bars, far beyond any short
+window. The 8-bar check used earlier mislabelled both directions: it called
+TXN/AMD/NVDA/AMAT fresh when they were mid-trade, and called MSI/HPQ held when
+they were flat.
+
+**Gate 2 — `plannedQty >= 1`.** With the shipped defaults (initial_capital
+10000, risk-based sizing, riskPercent 1.0) the share count is
+`floor(100 / 3·ATR)`. At current prices that is 0 for MU (0.73) and LLY (0.97),
+so the marker can never appear on them, and exactly 1 share for CAT, GWW, AMD,
+MCK, GS, PH, DE, AMAT and HUM.
+
+**Correct output for 2026-10-09: MSI and HPQ only.** `backtest/tdps_live_scan.py`
+replays the full strategy per symbol and applies all three gates; use it instead
+of a condition scan.
+
+Caveat that remains: replayed position state depends on the price series and the
+replay start bar, so it will not match a TradingView chart exactly. The chart's
+own BUY labels and Trade List are authoritative for a given chart.
