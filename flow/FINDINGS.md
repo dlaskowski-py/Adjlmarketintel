@@ -1149,3 +1149,27 @@ rather than drawn at random, though on data availability rather than on
 performance. And the acquisition group is not a neutral control either: its
 near-zero expectancy (-0.028%) reflects names drifting into a takeover bid,
 which is its own selection effect.
+
+### Tried and rejected: requiring the 200MA to be rising
+
+If the eventual-bankrupts lost money during uptrends on a long slide down, then
+asking the 200MA itself to be rising should separate "uptrend inside a
+multi-year advance" from "uptrend inside a multi-year decline". It has a clean
+story, so it was worth a test. It does not work.
+
+| gate | survivors | bankrupt names |
+|---|---|---|
+| current (50>200, close>200) | +0.211% | -1.239% |
+| plus 200MA rising over 21 bars | +0.218% | -1.185% |
+| plus 200MA rising over 63 bars | +0.184% | -0.976% |
+
+The 21-bar version improves both numbers by amounts far inside the error bars
+(+/-0.091pp on survivors, +/-1.5pp on the bankrupts) while discarding 1,269
+trades, 6% of the sample, for +0.007pp. The 63-bar version buys a real
+improvement on the bankrupts by giving up more than it gains on the survivors,
+which is the wrong trade when failures are a small share of any live universe.
+
+So the losses in eventually-bankrupt names are not concentrated in periods when
+their 200MA was falling. The slope carries no information the 50/200 cross and
+the close-above-200 test are not already using. Added to the list of filters
+that sounded right and did not survive measurement.
