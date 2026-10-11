@@ -1056,3 +1056,96 @@ was ever real.
 Only three names split in the last 260 bars (BDX, FDX, HON), which is why an
 earlier raw-vs-adjusted gap table put FDX at +11.5pp and BDX at +5.8pp: those
 were their splits, not dividend drag. Corrected figures above.
+
+## Survivorship bias: the largest remaining inaccuracy, now measured
+
+Every one of the 125 names in `data/` is still trading in 2026, and 122 have
+history back to 1999. The universe was built by taking what exists today and
+pulling its history backward. For a strategy whose failure mode is a dip that
+never recovers, that is the worst possible selection: the universe has deleted
+every name that dipped and died.
+
+### Building a delisted universe
+
+`scripts/fetch_delisted.py` pulls names from Alpha Vantage's `LISTING_STATUS`
+delisted roll (9,550 rows; 792 survive a filter for plain-ticker operating
+companies that IPO'd before 2000 and delisted after 2001). The payload is CSV
+with **no symbol column**, so nothing in the data says which company it is.
+The guard is that a delisted name's series must end on its stated delisting
+date. On the clean pulls it matched to the day, 14 times out of 16.
+
+That guard earned itself immediately, three times:
+
+- **CUB** came back as a recycled ticker: flat ~$10.50 through 2026 (a SPAC
+  trust) while Cubic Corp delisted in 2021-05-25.
+- **CVG and SHLM arrived swapped.** Parallel tool results returned out of
+  request order. Both were real, both passed a 120-day tolerance at 114 days
+  apart, and each had been written under the other's name. Found by auditing
+  every file against its own delisting date; tolerance cut from 120 days to 5.
+  This is the same failure that overwrote GD with GE's series earlier, and the
+  lesson is the same: when the payload carries no identity, the only safe check
+  is an independent fact about the specific symbol.
+- **POLY, SMRTQ, INAPQ, RTKHQ** refused — Alpha Vantage served a single bar or
+  post-filing penny data only.
+
+### The random sample contained no failures at all
+
+All 16 names in the random draw were **acquired or merged**, not failed. Their
+terminal years show takeover premiums, not death spirals: TQNT +231%, BHI
++124%, NATI +61%, SONC +61%, SHLM +47%. A company heading for Chapter 11 is
+moved to a Q-suffix ticker, and Alpha Vantage serves most of those with only
+post-filing data, so failures are nearly absent from the source. Five whose
+full operating history did survive under the Q ticker were added by hand:
+Weatherford ($90 peak to $0.019), Advanta ($46 to $0.0002), Bristow ($83 to
+$0.0086), Corus Bankshares, Aceto.
+
+| group | n | win | expectancy | PF |
+|---|---|---|---|---|
+| survivors (today's universe) | 20,302 | 62.4% | +0.211% | 1.17 |
+| delisted, all 21 | 2,138 | 58.8% | -0.234% | 0.89 |
+| of which acquired (16) | 1,775 | 58.6% | -0.028% | 0.99 |
+| of which bankrupt (5) | 363 | 59.8% | **-1.239%** | 0.61 |
+
+Survivors minus eventual-bankrupts: **+1.428pp per trade, t=2.01** (95% CI
++0.035 .. +2.821pp). Significant, but barely, on five names.
+
+### The trend gate does exactly what it is supposed to
+
+In the final 252 bars of all five bankruptcies the 50/200 gate was open on
+**0.6% of days and TDPS took zero trades**. ACETQ -94.9%, BRSWQ -99.9%,
+WFTIQ -95.6% in their last year, and the filter sat out every one of them.
+This is the strongest economic defense of the entry condition found so far:
+the trend gate is not decoration, it is what stops a dip-buyer from buying
+a company on its way to zero.
+
+What the gate does *not* do is exclude the multi-year decline that precedes
+the end. The five eventual-bankrupts still bled -1.239% per trade across their
+full histories, taken during the intermittent 50/200 uptrends on the way down.
+The protection is against the terminal collapse, not against the long slide.
+
+### What this costs the measured edge
+
+Blending survivor and eventual-bankrupt expectancy by the share of the
+universe that eventually fails:
+
+| share that fails | blended expectancy |
+|---|---|
+| 0% | +0.211% |
+| 5% | +0.138% |
+| 8% | +0.095% |
+| 10% | +0.066% |
+| **14.6%** | **0.000% -- break-even** |
+| 20% | -0.079% |
+
+So the edge survives unless more than about **15% of the tradeable universe
+eventually goes bankrupt**. For a large-cap universe over 27 years the real
+rate is well below that, so the conclusion is that survivorship bias takes a
+large bite out of the edge -- plausibly half of it -- without erasing it.
+
+Caveats worth keeping attached to that number: five bankruptcies is a tiny
+sample and the CI on their expectancy is +/- 1.39pp, so it is consistent with
+anything from -2.6% to +0.15% per trade. The five were chosen deliberately
+rather than drawn at random, though on data availability rather than on
+performance. And the acquisition group is not a neutral control either: its
+near-zero expectancy (-0.028%) reflects names drifting into a takeover bid,
+which is its own selection effect.
