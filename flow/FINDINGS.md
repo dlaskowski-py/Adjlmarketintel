@@ -1233,3 +1233,71 @@ are absent -- and those are the dot-com bust and the GFC, exactly the episodes
 that would punish a dip-buyer hardest. So this source can materially reduce
 survivorship bias from 2010 on, and only partially before that. Closing the
 pre-2010 gap needs a paid vendor with real point-in-time constituent data.
+
+## Modern growth names added, and where the edge actually lives
+
+Asked for active names -- "the Teslas and Ubers" -- rather than more dead ones.
+28 added: UBER ABNB PLTR META COIN SHOP CRWD NFLX SNOW AVGO DASH HOOD DDOG NET
+PANW NOW SPOT TTD ANET MRVL SMCI CRM SNAP RBLX ZS ARM SOFI DKNG. Universe is
+now 152 names. Median history 8.0 years, ARM the shortest at 3.1.
+
+For live signals survivorship is irrelevant: you can only buy what is listed.
+It distorts the backtested expectancy, not the scan.
+
+### A new identity guard
+
+`scripts/fetch_active.py` keys on the listing date: the series must START on the
+IPO date, or at Alpha Vantage's 1999-11-01 coverage floor for older companies.
+This is the only check that catches two *current* names written under each
+other's names, which is how CVG and SHLM went wrong -- every other guard passes
+for both, since both are long, live and distinct. All 28 verified (MRVL at 3
+days' tolerance, 2000-06-30 against a stated 2000-06-27).
+
+SOFI and DKNG listed by SPAC merger, so their first bars are the IPOE and DEAC
+shells, both near $10. No reliable date to assert, so none was; they were
+checked by hand instead. Their pre-merger bars are shell trading, not the
+operating company, which is a caveat on their early history only.
+
+### The edge is in high-beta tech, not in the universe at large
+
+Splitting the 152 names three ways, and measuring expectancy both as a percent
+of price and in ATR units -- the honest unit, since TDPS risks 3 ATR on every
+entry regardless of cohort:
+
+| cohort | ATR | exp (% price) | exp in ATRs | t (date-clustered) |
+|---|---|---|---|---|
+| old-economy large caps (108) | 2.10% | +0.161% | **+0.062** | 1.41 |
+| established tech (16) | 2.92% | +0.589% | **+0.213** | 3.98 |
+| modern growth (28 new) | 3.94% | +1.015% | **+0.234** | 4.27 |
+
+Two conclusions, the second more important than the first.
+
+**Volatility explains part of the gap, not all of it.** The raw spread between
+old-economy and modern growth is 6.3x; risk-adjusted it is 3.8x. So roughly 40%
+of the apparent advantage of growth names is simply that they move more, and a
+real 3.8x advantage survives.
+
+**The 108 old-economy names contribute nothing.** At t=1.41 their edge is not
+distinguishable from zero. The +0.211% measured across the whole universe in
+earlier sections was a blend of a strong tech edge and a null one, diluted by
+the dividend payers that make up most of the names on disk. The meaningful
+split is not old companies versus new ones, it is high-beta tech versus
+everything else -- and established tech reaches the same risk-adjusted number
+as the newly added growth names (+0.213 vs +0.234 ATR).
+
+That matters for which evidence to trust. The 28 modern names were picked from
+memory in 2026 by name recognition, which is the most survivor-selected sample
+in this repository -- every failed 2021 IPO is absent. The 16 established tech
+names carry the same edge risk-adjusted, on 25 years of history that includes
+the dot-com bust and on 1.4x the trades. **The established-tech number is the
+defensible one; treat the modern-growth figure as its upper bound.**
+
+### Live scan on the expanded universe
+
+Adding the modern names produces one new marker on the 2026-10-09 bar:
+
+    MSI    444.18   RSI(2) 10.4   3ATR stop 419.47   ATR 1.85%
+    HPQ     30.20   RSI(2) 10.9   3ATR stop  26.12   ATR 4.51%
+    META   718.67   RSI(2) 12.5   3ATR stop 652.38   ATR 3.07%
+
+Eight more are entry-condition-true but already long, ARM among them.
