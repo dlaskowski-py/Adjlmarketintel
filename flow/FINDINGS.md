@@ -1173,3 +1173,63 @@ So the losses in eventually-bankrupt names are not concentrated in periods when
 their 200MA was falling. The slope carries no information the 50/200 cross and
 the close-above-200 test are not already using. Added to the list of filters
 that sounded right and did not survive measurement.
+
+## What a bigger universe should contain, and it is not today's top 500
+
+Asked whether the test pulls the top 500 names. It does not -- `data/` holds
+124 stocks plus SPY, hand-assembled large caps. More to the point, expanding to
+today's S&P 500 would make the bias measured above **worse**, not better.
+
+Today's index is selected the same way the 124 are: by existing today. Going to
+500 current names quadruples the trade count and tightens every confidence
+interval around a number that is still biased, which is worse than a small
+honest sample because it manufactures precision. And it is a *stronger*
+look-ahead than the present universe: the 124 were mostly already large in
+1999, whereas today's 500 includes NVDA as a small cap, AMD near its 2002
+lows, and TSLA which did not list until 2010. Backfilling those to 1999 tests a
+dip-buyer on names already known to have compounded 100x, where every dip
+recovers because that is why they are in the index now.
+
+### The population that is actually missing
+
+`scripts/parse_spx_changes.py` parses Wikipedia's S&P 500 change log (raw
+wikitext, treated as data) into `data/reference/spx_changes.csv`: 412 rows,
+1976-07-01 to 2026-10-06, with date, added ticker, removed ticker and reason.
+
+Since 1999 the log records **377 removal events across 369 unique tickers**.
+`data/` holds 10 of them. **359 are missing.**
+
+| reason removed | events |
+|---|---|
+| acquired / merged | 177 |
+| market-cap decline / rebalance | 146 |
+| spun off / restructured | 30 |
+| other / unstated | 21 |
+| bankruptcy (explicitly stated) | 3 |
+
+The middle row is the interesting one. Names removed for "market capitalization
+changes" were neither bought nor bankrupt -- they simply faded, which is the
+single population a dip-buying backtest most needs and most lacks. The 142
+missing faders read as a list of value destruction: EK, FNM, FRE, BS, ABK, CFC,
+MBI, DYN, BBBY, FTR, RAD, RSH, MWW, JDSU, APOL, BTU, CHK, X, XRX, GPS, M, JWN,
+SIG, ANF, WIN, DISH, NBR, RIG, RDC, DNR. Every one of them printed RSI(2)<15
+inside a 50/200 uptrend at some point on the way down.
+
+### Honest limit on how good this can get
+
+The log's density by period shows it is not uniformly complete:
+
+| period | rows |
+|---|---|
+| 2000-2004 | 8 |
+| 2005-2009 | 35 |
+| 2010-2014 | 83 |
+| 2015-2019 | 135 |
+| 2020-2026 | 141 |
+
+The real index turns over roughly 20-25 names a year, so 1999-2009 should carry
+some 220 removals and the log has 43. Roughly four fifths of pre-2010 removals
+are absent -- and those are the dot-com bust and the GFC, exactly the episodes
+that would punish a dip-buyer hardest. So this source can materially reduce
+survivorship bias from 2010 on, and only partially before that. Closing the
+pre-2010 gap needs a paid vendor with real point-in-time constituent data.
