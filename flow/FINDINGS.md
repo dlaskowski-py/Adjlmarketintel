@@ -970,3 +970,89 @@ of a condition scan.
 Caveat that remains: replayed position state depends on the price series and the
 replay start bar, so it will not match a TradingView chart exactly. The chart's
 own BUY labels and Trade List are authoritative for a given chart.
+
+## The price basis: which series the signal reads
+
+Asked to compare the live scan on adjusted and unadjusted data. The answer to
+the immediate question is "no difference", but getting there turned up a data
+trap worth recording permanently, and one systematic bias that is real.
+
+### The raw close column is unusable for signals
+
+`TIME_SERIES_DAILY_ADJUSTED` returns a `close` that is **not split-adjusted**.
+AAPL prints -85.5% on 2014-06-09 and -74.2% on 2020-08-31; those are the 7:1
+and 4:1 splits. Every oscillator reads a split as a crash, so RSI(2) hits ~0
+and a mean-reversion entry fires straight into it.
+
+A first pass signalled off that column and reported the TDPS edge inverting:
+
+| signal series | n | win | expectancy | PF | t (date-clustered) |
+|---|---|---|---|---|---|
+| adjusted | 20,302 | 62.4% | +0.211% | 1.17 | +2.99 |
+| raw close | 31,774 | 47.9% | -0.126% | 0.86 | -2.90 |
+
+That sign flip was **manufactured entirely by splits** — the extra 11,472
+trades are fake oversold bars. The result was discarded, not reported as a
+finding. `backtest/price_basis.py` now exists so this cannot recur.
+
+### Done properly, the dividend basis does not matter
+
+Rebuilt the comparison with the split coefficient removed but dividends left
+in (`SPL`) — what a chart shows with dividend adjustment OFF, and the
+genuine point-in-time series, since a back-adjusted series is restated by
+every dividend paid after the signal date. P&L measured on total return in
+both arms, because that is what a position actually earned.
+
+| signal series | n | win | expectancy | PF | t |
+|---|---|---|---|---|---|
+| total return (as backtested) | 20,302 | 62.4% | +0.211% | 1.17 | +2.99 |
+| split-adjusted, point-in-time | 19,271 | 62.1% | +0.212% | 1.17 | +3.33 |
+
+Paired same-date difference **-0.000pp, t=-0.02** across 4,537 shared dates.
+The entry edge is indifferent to the dividend basis. The mild look-ahead in
+signalling off a back-adjusted series is not buying any of the edge.
+
+### Spinoffs are the residual hole, and total return is what plugs it
+
+The split coefficient does not cover spinoffs or special distributions, so
+`SPL` still craters on them while total return does not. Ten such bars in 125
+files: MO 2008-03-31 (-69.9% vs -1.6%), JCI 2007-07-02, ABT 2013-01-02,
+GOOGL 2014-04-03, JCI 2012-10-01, HPQ 2015-11-02, DUK 2007-01-03, RTX
+2020-04-03, MSI 2011-01-04, SO 2001-04-03. Ten fake entries in 19,271 trades
+is inside the noise, which is why the table above still agrees — but it means
+**the total-return series is the cleanest signal basis available in this
+dataset**, because `adj_close` absorbs every corporate action and the `split`
+column absorbs only one kind. The backtests were already on the right series,
+for a reason other than the one that motivated the check.
+
+### What the basis does change: the trend gate
+
+Dividend back-adjustment scales history down, so a total-return series sits
+higher above its own 200MA than the dividend-inclusive one. On the last bar,
+total return reads higher on **119 of 124** names, median **+0.74pp**: MO
++3.02, CMCSA +2.64, PFE +2.34, HPQ +2.20, UPS +2.20, BMY +2.06, KMB +2.01,
+VZ +1.78.
+
+That flips the gate outright on 9 of 124 names, every one in the same
+direction (total return says uptrend, dividend-inclusive says no): BMY, VZ,
+USB, MDT, T, AFL, CL, CAT and MAR. All dividend payers bar MAR, which
+disagrees on the 50/200 cross rather than the price leg. CAT is the knife
+edge at +0.10% vs -0.11%.
+
+So a TradingView chart with dividend adjustment off will show marginal
+trend-gate names as out of the gate when the backtest counts them as in. Set
+the chart to match the basis intended rather than assuming the gate is stable.
+Names sitting within ~1% of their 200MA are the ones where it will differ.
+
+### Today's scan is unchanged across all three bases
+
+The RSI(2)<15-inside-uptrend entry condition fires on the same 9 names on
+every basis (AMAT, AMD, DE, HPQ, INTC, MSI, NVDA, QCOM, TXN), and the drawn
+BUY markers are **HPQ and MSI** on every basis. Price basis is therefore not
+the explanation for a chart showing no fresh buys; position state is, as
+recorded in the previous section. Two separate issues, and only one of them
+was ever real.
+
+Only three names split in the last 260 bars (BDX, FDX, HON), which is why an
+earlier raw-vs-adjusted gap table put FDX at +11.5pp and BDX at +5.8pp: those
+were their splits, not dividend drag. Corrected figures above.
