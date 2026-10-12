@@ -1,0 +1,56 @@
+Subject: ADJL Capital — TDPS Signals & Market Close, Oct 12
+
+Market close, Monday, October 12, 2026
+
+  S&P 500 (SPY)        778.07     -0.06%
+  10-yr Treasury        5.22%     (last published 10-08)
+
+A flat index masking a sharp rotation underneath. Semiconductors were
+sold across the board — 10 of the 11 chip names we track closed lower,
+averaging -2.35%, led by SMCI -4.5%, ARM -4.1% and MU -3.9%. The money
+went into megacap platforms and defensives: META +3.4%, BDX +2.8%,
+CRM +2.0%. The index finished unchanged because those two moves
+cancelled, which is worth noting — a quiet tape is not always a quiet day.
+
+
+TDPS — new buy signals
+
+            close  RSI(2)     stop  shares  vs 200-day
+  SMCI      39.98     7.6    32.86     140      +23.5%
+  MRVL     265.86    10.6   221.53      22      +54.0%
+
+  Sizing assumes $100,000 of equity risking 1% per position to a
+  3-ATR stop. Scale the share counts to your own account.
+
+Why these two. TDPS buys a short-term washout inside a confirmed
+long-term uptrend — never a falling knife. Both names are well above
+their 200-day average and both got caught in today's sector-wide
+selling rather than anything company-specific. That is the setup the
+system is built for: the trend says the market still likes the name,
+the 2-day RSI says today's sellers have finished.
+
+Already held — oversold again but no new entry (9):
+  ARM, INTC, QCOM, AMAT, NVDA, AMD, TXN, HPQ, MU
+
+These met the entry test today but we are already positioned, so the
+system does not add. Flagged so the concentration is visible: the
+book is heavily weighted to semis right now.
+
+
+How to read this
+
+TDPS is a mean-reversion system from the 1970s: buy a 2-day oversold
+reading inside a 50/200-day uptrend, stop at 3 ATR, scale 70% out on the
+bounce and trail the rest. In our testing across 152 names and 27 years
+it wins about 62% of trades. Its edge is concentrated in high-beta
+technology; it does not work on large-cap dividend payers, where we
+measure no reliable advantage at all. We size every position off the stop
+distance so a loss costs the same regardless of the name's volatility.
+
+These are signals from a quantitative system, not individual
+recommendations, and they do not account for your tax situation,
+time horizon, or existing holdings. Past results do not predict future
+returns. Happy to walk through any of it.
+
+— Danny Laskowski
+  ADJL Capital
