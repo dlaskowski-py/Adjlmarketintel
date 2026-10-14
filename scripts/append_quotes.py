@@ -10,7 +10,15 @@ A bar is refused unless the stored series ends on the expected prior date AND
 the closes agree to 0.2%, which tolerates the small consolidated-close revisions
 that appear after the bell without tolerating a wrong symbol.
 
-Input CSV: symbol,open,high,low,price,volume,previousClose
+A second guard matters as much: the quote's own `latestDay` must equal the bar
+date being written. Alpha Vantage updates symbols at different times, so a
+quote pulled after the close can still carry the PREVIOUS session. On 2026-10-14
+AAPL and NOW both came back stamped 10-13, and AAPL's previousClose sat 0.09%
+from the stored 10-13 close -- inside the 0.2% tolerance. Without this check it
+would have written yesterday's bar under today's date and silently frozen the
+series.
+
+Input CSV: symbol,open,high,low,price,volume,previousClose,latestDay
 
 Usage:  python3 scripts/append_quotes.py <quotes.csv> <bar-date> <prior-date>
 """
@@ -33,6 +41,11 @@ def main(src, bar, prior):
             refused.append(f'{s}: {bar} already present'); continue
         if rows[-1]['date'] != prior:
             refused.append(f"{s}: series ends {rows[-1]['date']}, expected {prior}")
+            continue
+        ld = (q.get('latestDay') or '').strip()
+        if ld and ld != bar:
+            refused.append(f'{s}: quote is stamped {ld}, not {bar} '
+                           f'-- provider has not posted this session yet')
             continue
         stored, pc = float(rows[-1]['close']), float(q['previousClose'])
         if abs(stored / pc - 1) > TOL:
