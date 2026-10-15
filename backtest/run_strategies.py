@@ -260,12 +260,17 @@ def run(target, equity=100000.0, risk=0.01, all_cohorts=False, min_cov=0.90):
         if not all_cohorts and cohort(s) not in EDGE_COHORTS:
             continue
         universe.append(s)
-        last = list(csv.DictReader(open(p)))[-1]['date']
-        (current if last == target else stale).append((s, p, last))
+        dates = [r['date'] for r in csv.DictReader(open(p))]
+        # current = has a bar ON the target date. For a past target the series
+        # is truncated to it below, so any day can be replayed as of its close.
+        last = max((x for x in dates if x <= target), default='')
+        (current if target in dates else stale).append((s, p, last))
 
     actions, book = [], []
     for s, p, _ in current:
         TR, _, _ = bases(p)
+        k = TR[0].index(target) + 1
+        TR = tuple(x[:k] for x in TR)
         for mode, P in MODES.items():
             ev, open_pos = tdps_events(TR, P, equity, risk)
             for e in ev:

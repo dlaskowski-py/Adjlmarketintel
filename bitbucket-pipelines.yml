@@ -1,0 +1,61 @@
+# ADJL research -- the daily signals pipeline.
+#
+# ONE custom pipeline, `daily-signals`, run by TWO schedules. Schedules are
+# set in the Bitbucket UI, not here:
+#
+#   Repository settings -> Pipelines -> Schedules -> New schedule
+#     branch: main   pipeline: custom: daily-signals   interval: daily
+#     one at 20:00 UTC, one at 21:00 UTC
+#
+# Two because Bitbucket schedules are in UTC and 4:20pm New York is 20:20 UTC
+# in summer and 21:20 UTC in winter. scripts/daily_job.py decides which of the
+# two runs should act on a given day; the other exits in seconds. Read its
+# docstring before changing either schedule.
+#
+# Repository variables (Repository settings -> Pipelines -> Repository
+# variables), every one marked SECURED so it never prints in a log:
+#
+#   ALPHAVANTAGE_API_KEY        market data
+#   SUPABASE_URL                the ADJL Capital project URL
+#   SUPABASE_SERVICE_ROLE_KEY   writes the signals tables. This key bypasses
+#                               every row-level policy in the project. It lives
+#                               here and in Netlify's function scope and
+#                               nowhere else -- never in a file, never in chat.
+#
+# Pushing the refreshed data back needs write access from the pipeline; if the
+# push step is refused, add a repository access token with write scope as
+# BB_PUSH_TOKEN (secured) and the step uses it.
+
+image: python:3.12
+
+pipelines:
+  custom:
+    daily-signals:
+      - step:
+          name: Refresh, run strategies, publish
+          max-time: 60
+          script:
+            - python3 --version
+            # Prove the published engine is still the backtested one before it
+            # publishes anything. 21995 trades as of 2026-10-15; any series that
+            # disagrees fails the run here, not on an investor's screen.
+            - python3 backtest/run_strategies.py --parity
+            - python3 scripts/daily_job.py
+            # Persist the refreshed series so tomorrow's run starts current.
+            # The compact daily pull covers ~100 sessions, so data that is never
+            # committed back would eventually fall outside it and every overlap
+            # check would refuse. [skip ci] keeps this push from triggering a run.
+            - |
+              if [ -n "$(git status --porcelain data/ flow/)" ]; then
+                git config user.name "ADJL signals pipeline"
+                git config user.email "${PIPELINE_GIT_EMAIL:-pipelines@invalid}"
+                git add data/ flow/
+                git commit -q -m "Daily refresh $(date -u +%F) [skip ci]"
+                if [ -n "$BB_PUSH_TOKEN" ]; then
+                  git push "https://x-token-auth:${BB_PUSH_TOKEN}@bitbucket.org/${BITBUCKET_REPO_FULL_NAME}.git" HEAD:${BITBUCKET_BRANCH}
+                else
+                  git push origin HEAD:${BITBUCKET_BRANCH}
+                fi
+              else
+                echo "no data changes to commit"
+              fi
