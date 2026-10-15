@@ -1,0 +1,343 @@
+{
+ "asof": "2026-10-14",
+ "generated_at": "2026-10-15T21:57:44+00:00",
+ "status": "complete",
+ "coverage": {
+  "universe": 44,
+  "current": 15,
+  "fraction": 0.341,
+  "stale": [
+   "AAPL:2026-10-13",
+   "ABNB:2026-10-09",
+   "AMZN:2026-10-09",
+   "ANET:2026-10-09",
+   "AVGO:2026-10-09",
+   "COIN:2026-10-09",
+   "CRWD:2026-10-09",
+   "CSCO:2026-10-09",
+   "DASH:2026-10-09",
+   "DDOG:2026-10-09",
+   "DKNG:2026-10-09",
+   "MSFT:2026-10-09",
+   "NET:2026-10-09",
+   "NFLX:2026-10-09",
+   "NOW:2026-10-13",
+   "ORCL:2026-10-08",
+   "PANW:2026-10-09",
+   "PLTR:2026-10-09",
+   "RBLX:2026-10-09",
+   "SHOP:2026-10-09",
+   "SNAP:2026-10-09",
+   "SNOW:2026-10-09",
+   "SOFI:2026-10-09",
+   "SPOT:2026-10-09",
+   "TSLA:2026-10-08",
+   "TTD:2026-10-09",
+   "UBER:2026-10-09",
+   "V:2026-10-09",
+   "ZS:2026-10-09"
+  ]
+ },
+ "actions": [
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "AMAT",
+   "cohort": "tech",
+   "date": "2026-10-14",
+   "kind": "entry",
+   "reason": "tdps.entry.washout",
+   "price": 446.63,
+   "stop": 386.0681,
+   "qty": 16
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "INTC",
+   "cohort": "tech",
+   "date": "2026-10-14",
+   "kind": "entry",
+   "reason": "tdps.entry.washout",
+   "price": 98.12,
+   "stop": 81.1808,
+   "qty": 59
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "MU",
+   "cohort": "tech",
+   "date": "2026-10-14",
+   "kind": "entry",
+   "reason": "tdps.entry.washout",
+   "price": 914.13,
+   "stop": 773.9559,
+   "qty": 7
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "AMD",
+   "cohort": "tech",
+   "date": "2026-10-14",
+   "kind": "exit",
+   "reason": "tdps.exit.trail",
+   "price": 570.82,
+   "entry": 453.15
+  }
+ ],
+ "book": [
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "AMAT",
+   "cohort": "tech",
+   "entry_date": "2025-10-23",
+   "entry": 217.1625,
+   "scaled": false,
+   "bars": 244,
+   "last": 446.63,
+   "stop": 124.8742
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "AMD",
+   "cohort": "tech",
+   "entry_date": "2026-08-20",
+   "entry": 465.67,
+   "scaled": false,
+   "bars": 38,
+   "last": 570.82,
+   "stop": 99.6728
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "ARM",
+   "cohort": "growth",
+   "entry_date": "2026-06-08",
+   "entry": 354.0,
+   "scaled": false,
+   "bars": 89,
+   "last": 238.01,
+   "stop": -12.068
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "CRM",
+   "cohort": "growth",
+   "entry_date": "2026-09-18",
+   "entry": 244.25,
+   "scaled": false,
+   "bars": 18,
+   "last": 236.07,
+   "stop": 126.837
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "HOOD",
+   "cohort": "growth",
+   "entry_date": "2026-09-17",
+   "entry": 110.1,
+   "scaled": false,
+   "bars": 19,
+   "last": 101.08,
+   "stop": 30.2971
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "INTC",
+   "cohort": "tech",
+   "entry_date": "2026-10-06",
+   "entry": 117.06,
+   "scaled": false,
+   "bars": 6,
+   "last": 98.12,
+   "stop": 45.1563
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "META",
+   "cohort": "growth",
+   "entry_date": "2026-10-12",
+   "entry": 728.1,
+   "scaled": false,
+   "bars": 2,
+   "last": 737.54,
+   "stop": 462.9287
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "MRVL",
+   "cohort": "growth",
+   "entry_date": "2026-03-31",
+   "entry": 96.3095,
+   "scaled": false,
+   "bars": 136,
+   "last": 245.28,
+   "stop": 36.7592
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "MU",
+   "cohort": "tech",
+   "entry_date": "2026-07-29",
+   "entry": 833.0,
+   "scaled": false,
+   "bars": 54,
+   "last": 914.13,
+   "stop": -164.6182
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "NVDA",
+   "cohort": "tech",
+   "entry_date": "2026-08-19",
+   "entry": 221.4165,
+   "scaled": false,
+   "bars": 39,
+   "last": 221.3,
+   "stop": 141.99
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "QCOM",
+   "cohort": "tech",
+   "entry_date": "2026-10-02",
+   "entry": 186.715,
+   "scaled": false,
+   "bars": 8,
+   "last": 172.62,
+   "stop": 85.2542
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "SMCI",
+   "cohort": "growth",
+   "entry_date": "2026-10-13",
+   "entry": 38.6,
+   "scaled": false,
+   "bars": 1,
+   "last": 35.78,
+   "stop": 10.121
+  },
+  {
+   "strategy": "tdps_aggressive",
+   "symbol": "TXN",
+   "cohort": "tech",
+   "entry_date": "2026-06-02",
+   "entry": 299.7165,
+   "scaled": false,
+   "bars": 93,
+   "last": 280.65,
+   "stop": 159.6637
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "ARM",
+   "cohort": "growth",
+   "entry_date": "2026-10-09",
+   "entry": 280.0,
+   "scaled": false,
+   "bars": 3,
+   "last": 238.01,
+   "stop": 226.7097
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "CRM",
+   "cohort": "growth",
+   "entry_date": "2026-10-07",
+   "entry": 225.24,
+   "scaled": true,
+   "bars": 5,
+   "last": 236.07,
+   "stop": 225.24
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "HOOD",
+   "cohort": "growth",
+   "entry_date": "2026-10-09",
+   "entry": 108.84,
+   "scaled": false,
+   "bars": 3,
+   "last": 101.08,
+   "stop": 91.7107
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "META",
+   "cohort": "growth",
+   "entry_date": "2026-10-12",
+   "entry": 728.1,
+   "scaled": true,
+   "bars": 2,
+   "last": 737.54,
+   "stop": 728.1
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "MRVL",
+   "cohort": "growth",
+   "entry_date": "2026-10-13",
+   "entry": 253.5,
+   "scaled": false,
+   "bars": 1,
+   "last": 245.28,
+   "stop": 209.1668
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "NVDA",
+   "cohort": "tech",
+   "entry_date": "2026-10-09",
+   "entry": 233.835,
+   "scaled": false,
+   "bars": 3,
+   "last": 221.3,
+   "stop": 216.5889
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "QCOM",
+   "cohort": "tech",
+   "entry_date": "2026-10-02",
+   "entry": 186.715,
+   "scaled": false,
+   "bars": 8,
+   "last": 172.62,
+   "stop": 161.3498
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "SMCI",
+   "cohort": "growth",
+   "entry_date": "2026-10-13",
+   "entry": 38.6,
+   "scaled": false,
+   "bars": 1,
+   "last": 35.78,
+   "stop": 31.4802
+  },
+  {
+   "strategy": "tdps_conservative",
+   "symbol": "TXN",
+   "cohort": "tech",
+   "entry_date": "2026-09-18",
+   "entry": 260.815,
+   "scaled": true,
+   "bars": 18,
+   "last": 280.65,
+   "stop": 260.815
+  }
+ ],
+ "btc": {
+  "asof": "2026-10-09",
+  "kind": "hold",
+  "reason": "btc.hold.long",
+  "price": 81768.06,
+  "long": true
+ },
+ "market": {
+  "asof": "2026-10-14",
+  "reason": "market.risk_on",
+  "flipped": false,
+  "price": 769.67
+ }
+}

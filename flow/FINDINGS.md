@@ -1301,3 +1301,62 @@ Adding the modern names produces one new marker on the 2026-10-09 bar:
     META   718.67   RSI(2) 12.5   3ATR stop 652.38   ATR 3.07%
 
 Eight more are entry-condition-true but already long, ARM among them.
+
+## The live scanners re-entered on exit bars -- two reports were wrong
+
+The backtests skip to the bar after an exit before testing for a new entry
+(`i = j + 1`). Both live scanners did not: they managed the open position, and
+then tested `pos <= 0` for a BUY marker on the same bar. Pine cannot do that.
+`strategy.position_size` during a bar's execution is the start-of-bar value,
+and v5 evaluates its entry block before its exits, so on a bar where a position
+closes `position_size <= 0` is false and no marker can draw. Re-entry is
+possible one bar later at the earliest. `tdps_scan_date.py` also checked exits
+on the fill bar, where v5 gates every exit behind `canManage = heldBars > 0`.
+
+Replaying each reported day as of its own close with the corrected engine:
+
+| day | reported | chart showed |
+|---|---|---|
+| 2026-10-12 | SMCI, MRVL | SMCI, MRVL -- correct |
+| 2026-10-13 | AMAT, MU | **nothing**: AMAT's runner closed on its trail, MU's on its breakeven stop |
+| 2026-10-14 | ETN, INTC, AMD | **AMAT, MU**, ETN, INTC -- AMD was an exit bar |
+
+So AMAT and MU were genuine signals one day later than reported, and AMD was
+never one. Anyone acting on the 10-13 report bought roughly 4% higher, into a
+further decline. The 2026-10-09 result (MSI, HPQ) stands; META also fires on
+that bar once the modern names are in the universe, as already recorded.
+
+No backtest number changes: every performance figure in this file came from
+replays that were already correct.
+
+### One engine, proven equal to the backtest
+
+The root cause was three hand-written replays that drifted apart. Now there is
+one: `tdps_events()` in `backtest/run_strategies.py`. The scanner takes its
+position state from it, the old `tdps_live_scan.py` delegates to the scanner,
+and `run_strategies.py --parity` asserts that the replay and the backtest
+produce the identical trade list:
+
+    parity: backtest 21995 trades, replay 21995 trades, 0 series disagree
+
+That check is what makes the investor screen trustworthy: the signals it shows
+are, trade for trade, the strategy whose results are in this file.
+
+### The strategy runner behind the 4:20pm update
+
+`run_strategies.py` runs only the strategies that beat their blind control --
+TDPS in both modes, the BTC 30/150 trend regime, and the SPY 50/200 market
+state -- and leaves out McClellan, volume shelves, the short systems and the
+overnight anomaly, all of which failed. TDPS publishes only on the tech and
+growth cohorts where its edge was measured (t=3.98 and 4.27), not the
+old-economy names where it was not (t=1.41); `--all-cohorts` overrides.
+
+What it emits is reason CODES -- `tdps.entry.washout`, `tdps.exit.trail` --
+never parameters. The portal maps codes to plain sentences, which keeps the
+published side readable to an investor and reveals nothing reconstructable,
+per the standing rule in the website's `shared/signal.mjs`.
+
+It refuses to publish when less than 90% of the publishing universe is current
+to the target date, writes only its own date's rows so published history is
+never rewritten, and treats every action as executable at the next open, since
+nobody reading a 4:20pm email can trade the 4:00pm close.

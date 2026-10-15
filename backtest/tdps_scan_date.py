@@ -31,55 +31,49 @@ def rsi(c, n=2):
 
 
 def state(path, equity, riskpct):
-    """Replay to the final bar. Returns the position/marker state there."""
+    """Position state on the final bar, from the ONE replay the portal uses.
+
+    This used to carry its own replay loop, and it drifted from both Pine and
+    the backtest in two ways: it checked exits on the fill bar (v5 gates every
+    exit behind heldBars > 0), and it allowed re-entry on the bar a position
+    closed (impossible in Pine, where position_size is the start-of-bar value
+    and the entry block runs before the exits). The second produced a false
+    AMD BUY on 2026-10-14. Position state now comes from run_strategies, which
+    is checked trade-for-trade against the backtest by `--parity`.
+
+    RSI and the 200-day distance are still computed here because this is the
+    internal diagnostic view; the portal never sees them.
+    """
+    from run_strategies import tdps_events, MODES
     TR, _, _ = bases(path)
     d, o, h, l, c = TR
     if len(c) < 265:
         return None
-    m50, m200, m10 = sma(c, 50), sma(c, 200), sma(c, 10)
+    m50, m200 = sma(c, 50), sma(c, 200)
     _, atr = dmi_atr(h, l, c, 14)
     r2 = rsi(c, 2)
-    n = len(c)
-
-    pos = 0            # 0 flat, 1 long
-    entry = ebar = 0
-    scaled = False
-    peak = 0.0
-    base = 0.0
-    for i in range(260, n):
-        if None in (m50[i], m200[i], m10[i], atr[i], r2[i]):
-            continue
-        if pos:
-            peak = max(peak, h[i])
-            s = max(base, entry) if scaled else base
-            held = i - ebar
-            if l[i] <= s:
-                pos = 0
-            elif not scaled and c[i] > m10[i]:
-                scaled = True
-            elif ((scaled and c[i] < peak - 3.0 * atr[i])
-                  or c[i] < m200[i] or held >= (40 if scaled else 15)):
-                pos = 0
-        if pos == 0 and i < n - 1:
-            if m50[i] > m200[i] and c[i] > m200[i] and r2[i] < 15:
-                pos = 1; entry = o[i+1] if i+1 < n else c[i]
-                ebar = i + 1; scaled = False; peak = h[i]; base = entry - 3.0*atr[i]
-
-    i = n - 1
+    i = len(c) - 1
     if None in (m50[i], m200[i], atr[i], r2[i]):
         return None
+    ev, book = tdps_events(TR, MODES['tdps_conservative'], equity, riskpct / 100.0)
+    today = [e for e in ev if e['date'] == d[i]]
+    marker = any(e['kind'] == 'entry' for e in today)
+    exit_today = next((e['reason'] for e in today if e['kind'] == 'exit'), None)
+    open_ = book is not None and not book.get('pending')
     cond = m50[i] > m200[i] and c[i] > m200[i] and r2[i] < 15
     stop = c[i] - 3.0 * atr[i]
     qty = int((equity * riskpct / 100.0) / max(c[i] - stop, 1e-9))
-    return dict(date=d[i], close=c[i], rsi=r2[i], cond=cond, pos=pos,
-                atrpct=100*atr[i]/c[i], stop=stop, qty=qty,
-                held=(i - ebar) if pos else 0, scaled=scaled,
-                entry_date=d[ebar] if pos and ebar < n else '',
-                vs200=100*(c[i]/m200[i]-1))
+    return dict(date=d[i], close=c[i], rsi=r2[i], cond=cond, pos=1 if open_ else 0,
+                marker=marker, exit_today=exit_today,
+                atrpct=100 * atr[i] / c[i], stop=stop, qty=qty,
+                held=book['bars'] if open_ else 0,
+                scaled=book['scaled'] if open_ else False,
+                entry_date=book['entry_date'] if open_ else '',
+                vs200=100 * (c[i] / m200[i] - 1))
 
 
 def main(target, equity=100000.0, riskpct=1.0):
-    marks, held, blocked, stale = [], [], [], 0
+    marks, held, blocked, closed, stale = [], [], [], [], 0
     for p in sorted(glob.glob('data/*_daily_adj.csv')):
         s = os.path.basename(p).split('_')[0]
         if s == 'SPY':
@@ -94,8 +88,10 @@ def main(target, equity=100000.0, riskpct=1.0):
             continue
         if not st:
             continue
-        if st['cond'] and st['pos'] == 0 and st['qty'] >= 1:
+        if st['marker']:
             marks.append((s, st))
+        elif st['cond'] and st['exit_today']:
+            closed.append((s, st))
         elif st['cond'] and st['pos'] == 1:
             held.append((s, st))
         elif st['cond'] and st['qty'] < 1:
@@ -116,6 +112,11 @@ def main(target, equity=100000.0, riskpct=1.0):
         for s, st in sorted(held, key=lambda x: x[1]['rsi']):
             print(f"     {s:<6} RSI(2) {st['rsi']:>5.1f}  held since {st['entry_date']} "
                   f"({st['held']} bars, {'scaled' if st['scaled'] else 'not scaled'})")
+    if closed:
+        print(f"\n   entry condition true but the position CLOSED this bar, so no marker "
+              f"({len(closed)}) -- Pine cannot re-enter on an exit bar; next bar at the earliest:")
+        for s, st in closed:
+            print(f"     {s:<6} RSI(2) {st['rsi']:>5.1f}  closed by {st['exit_today']}")
     if blocked:
         print(f"\n   entry condition true but size floors to 0 shares ({len(blocked)}):")
         for s, st in blocked:
