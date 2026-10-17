@@ -306,20 +306,30 @@ def publish(out):
         sys.exit(f"refusing to publish a {out['status']} run: "
                  f"{out['coverage']['current']}/{out['coverage']['universe']} current")
 
+    auth = {'apikey': key, 'Authorization': f'Bearer {key}'}
+
     def post(table, rows, conflict):
         req = urllib.request.Request(
             f"{url}/rest/v1/{table}?on_conflict={conflict}",
             data=json.dumps(rows).encode(), method='POST',
-            headers={'apikey': key, 'Authorization': f'Bearer {key}',
-                     'Content-Type': 'application/json',
-                     # ignore-duplicates, not merge: a published row is never rewritten
-                     'Prefer': 'resolution=ignore-duplicates,return=minimal'})
+            headers={**auth, 'Content-Type': 'application/json',
+                     # ignore-duplicates, not merge: a published row is never rewritten.
+                     # return=representation answers with only the rows this call
+                     # inserted, so an existing row comes back as [].
+                     'Prefer': 'resolution=ignore-duplicates,return=representation'})
         with urllib.request.urlopen(req, timeout=30) as r:
-            return r.status
+            return json.loads(r.read() or b'[]')
+
+    # A 12 ATR stop on a volatile name can sit at or below zero (ARM, -12.07):
+    # no price stop at all. The table refuses stop <= 0, and one such row would
+    # fail the whole batch, so it goes as null -- "no price stop", which the
+    # portal shows on a buy as "Trend exit only".
+    def price_stop(s):
+        return s if s is not None and s > 0 else None
 
     sig = [dict(asof=out['asof'], strategy=a['strategy'], symbol=a['symbol'],
                 kind=a['kind'], reason=a['reason'], price=a['price'],
-                stop=a.get('stop'), cohort=a['cohort'])
+                stop=price_stop(a.get('stop')), cohort=a['cohort'])
            for a in out['actions']]
     for x in (out['btc'], ):
         if x and x['kind'] != 'hold':
@@ -336,9 +346,27 @@ def publish(out):
                                              'entry_date', 'entry', 'scaled',
                                              'stop', 'last')}
                           for b in out['book']])]
-    post('strategy_runs', run_row, 'asof')
-    if sig:
-        post('strategy_signals', sig, 'asof,strategy,symbol,kind')
+    if not post('strategy_runs', run_row, 'asof'):
+        print(f"{out['asof']} was already published; nothing written")
+        return
+    # The run row goes first (signals reference it), so a failed signals batch
+    # would leave a day that reads as published with no actions, and daily_job
+    # would skip the retry. Take back the row this call wrote -- it has no
+    # signals, since a batch insert is all or nothing -- and fail loudly.
+    try:
+        if sig:
+            post('strategy_signals', sig, 'asof,strategy,symbol,kind')
+    except Exception:
+        try:
+            urllib.request.urlopen(urllib.request.Request(
+                f"{url}/rest/v1/strategy_runs?asof=eq.{out['asof']}",
+                method='DELETE', headers=auth), timeout=30).close()
+            print(f"signals failed; withdrew the {out['asof']} run row so a retry can publish it",
+                  file=sys.stderr)
+        except Exception as e:
+            print(f"signals failed AND the {out['asof']} run row could not be withdrawn ({e}); "
+                  f"delete it by hand or the day stays empty", file=sys.stderr)
+        raise
     print(f"published {out['asof']}: {len(sig)} actions, {len(out['book'])} open")
 
 
